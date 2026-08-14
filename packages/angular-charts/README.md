@@ -25,8 +25,14 @@ export class RevenueChart {
 }
 ```
 
-The component accepts one typed `options` input so Angular can track it as a
-single signal or immutable value.
+Angular 20 or newer is required. The component uses function-based signal
+inputs and queries, `DestroyRef` cleanup, and browser-only `afterNextRender`
+mounting. Bind one typed immutable `options` value, including a value read from
+an application signal. Definitions and marks stay on `@tanstack/charts`; the
+Angular component and adapter-only types stay on `@tanstack/charts/angular`.
+
+See the complete zoneless Angular 20 application in
+[`examples/charts-angular`](https://github.com/TanStack/charts/tree/main/examples/charts-angular).
 
 Read the published
 [Angular adapter guide](https://tanstack.com/charts/latest/docs/framework/angular/adapter)

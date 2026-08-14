@@ -8,48 +8,61 @@ pnpm add @tanstack/charts @angular/common @angular/core @angular/platform-browse
 ```
 
 ```ts
-import { Component } from '@angular/core'
+import { Component, signal } from '@angular/core'
 import { Chart } from '@tanstack/charts/angular'
 import { defineChart } from '@tanstack/charts'
 import { tooltip } from '@tanstack/charts/tooltip'
 
 @Component({
   imports: [Chart],
-  template: `<tanstack-chart [options]="chartOptions" />`,
+  template: `<tanstack-chart [options]="chartOptions()" />`,
 })
 export class RevenueChart {
-  chartOptions = {
+  readonly chartOptions = signal({
     definition: defineChart(createRevenueChart(rows), { tooltip }),
     ariaLabel: 'Revenue by month',
     aspectRatio: 16 / 9,
-  }
+  })
 }
 ```
 
-The single `options` input works with immutable values and signals. The
-standalone component ships as a partial-compiled Angular package.
+Angular 20 or newer is required. The single `options` signal input accepts a
+plain immutable value or the result of an application signal. The standalone
+component ships as a partial-Ivy Angular package, so consuming applications
+link it with their own Angular compiler.
+
+Definitions and marks come from `@tanstack/charts`; Angular-specific values
+come from `@tanstack/charts/angular`. Keeping these entry points separate avoids
+making every framework adapter re-export the complete authoring API while
+preserving a single installable package.
 
 ## Lifecycle
 
-`ngOnChanges` creates or updates one shared adapter controller.
-Angular's `afterNextRender` mounts it into the prerendered surface in the
-browser, and `ngOnDestroy` cleans it up. Replace the complete `options` value
-when chart state changes; mutating the existing object does not produce an
-`OnPush` input change. Callbacks such as `onFocusChange` are functions inside
+An Angular `effect` creates or updates one shared adapter controller when the
+`options` input signal or tooltip-body content query changes. Function-based
+`viewChild` and `contentChild` queries replace query decorators.
+`afterNextRender` mounts only on Angular's browser platform, and `DestroyRef`
+cleans up the controller and embedded tooltip view. Replace the complete
+`options` value when chart state changes; mutating the existing object does not
+change the input signal. Callbacks such as `onFocusChange` are functions inside
 `options`, not Angular outputs.
 
 ## Browser and server status
 
-The verified package contract covers complete SVG server rendering through
-Angular's `renderApplication`, browser mount, immutable updates, and teardown.
-Angular hydration is not yet part of the adapter's tested public contract.
+The Angular 20 example is compiled and tested with Angular CLI's native
+`@angular/build:unit-test` Vitest builder. The verified contract covers complete
+SVG server rendering through Angular's `renderApplication`, browser mount,
+signal-driven immutable updates, production compilation, and teardown. Angular
+hydration is not yet part of the adapter's tested public contract.
 
 ## Presentation and rendering
 
-`options.class` and the string `options.style` apply to the inner
-`.ts-chart-host`; `options.className` applies to the rendered SVG surface. The
-package exposes the SVG component only. Use `renderSvg` to replace SVG
-serialization without replacing the shared host.
+`options.class` binds to the inner host's class attribute. Angular merges it
+with the static `.ts-chart-host` class; the adapter does not concatenate class
+strings. The string `options.style` applies to the same host, while
+`options.className` applies to the rendered SVG surface. The package exposes
+the SVG component only. Use `renderSvg` to replace SVG serialization without
+replacing the shared host.
 
 Exports: `Chart`, `ChartCommonOptions`, `ChartOptions`,
 `ChartPresentationOptions`, `ChartTooltipBodyDirective`,
@@ -67,4 +80,6 @@ swatches. The shared host owns focus, placement, portaling, inert transient
 state, pinning, and dismissal; Angular owns the embedded-view lifecycle.
 
 See the [`Chart` reference](./reference/chart.md) and
-[Chart Definition API](../../reference/chart-definitions.md).
+[Chart Definition API](../../reference/chart-definitions.md). A complete
+zoneless Angular 20 application and its native tests live in
+[`examples/charts-angular`](https://github.com/TanStack/charts/tree/main/examples/charts-angular).

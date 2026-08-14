@@ -2,23 +2,23 @@ import {
   APP_ID,
   ChangeDetectionStrategy,
   Component,
-  ContentChild,
+  DestroyRef,
   ElementRef,
   Injectable,
-  Input,
+  PLATFORM_ID,
   TemplateRef,
-  ViewChild,
   ViewContainerRef,
   ViewEncapsulation,
   afterNextRender,
+  computed,
+  contentChild,
+  effect,
   inject,
+  input,
+  signal,
+  viewChild,
 } from '@angular/core'
-import type {
-  EmbeddedViewRef,
-  OnChanges,
-  OnDestroy,
-  SimpleChanges,
-} from '@angular/core'
+import type { EmbeddedViewRef } from '@angular/core'
 import { DomSanitizer } from '@angular/platform-browser'
 import type { SafeHtml } from '@angular/platform-browser'
 import { resolveChartAdapterLayout } from '@tanstack/charts/adapter'
@@ -57,20 +57,20 @@ class ChartIdGenerator {
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   template: `
-    <div [class]="hostClass" [style]="hostStyle">
+    <div class="ts-chart-host" [class]="options().class" [style]="hostStyle()">
       <div
         #surface
         class="ts-chart-surface"
         style="width: 100%; height: 100%"
-        [innerHTML]="initialMarkup"
+        [innerHTML]="initialMarkup()"
       ></div>
     </div>
     <ng-container #tooltipOutlet></ng-container>
     <ng-content select="ng-template[tanstackChartTooltipBody]" />
     <ng-template #defaultTooltipBody>
-      @if (defaultTooltipText !== undefined) {
-        {{ defaultTooltipText }}
-      } @else if (defaultTooltipContent; as content) {
+      @if (defaultTooltipText() !== undefined) {
+        {{ defaultTooltipText() }}
+      } @else if (defaultTooltipContent(); as content) {
         @if (content.title) {
           <div
             class="ts-chart-tooltip__title"
@@ -122,42 +122,44 @@ export class Chart<
   TDatum = unknown,
   TXValue extends ChartValue = ChartValue,
   TYValue extends ChartValue = ChartValue,
->
-  implements OnChanges, OnDestroy
-{
-  @Input({ required: true })
-  declare options: ChartOptions<TDatum, TXValue, TYValue>
+> {
+  readonly options = input.required<ChartOptions<TDatum, TXValue, TYValue>>()
 
-  @ViewChild('surface', { static: true })
-  declare private surface: ElementRef<HTMLElement>
-
-  @ViewChild('tooltipOutlet', { read: ViewContainerRef, static: true })
-  declare private tooltipOutlet: ViewContainerRef
-
-  @ViewChild('defaultTooltipBody', { static: true })
-  declare private defaultTooltipBody: TemplateRef<unknown>
-
-  @ContentChild(ChartTooltipBodyDirective)
-  set tooltipBodyDirective(
-    directive: ChartTooltipBodyDirective<TDatum, TXValue, TYValue> | undefined,
-  ) {
-    if (directive === this.tooltipBody) return
-    this.destroyTooltipBodyView()
-    this.tooltipBody = directive
-    this.updateAdapter()
-    if (directive && this.tooltipBodyTarget) {
-      this.renderTooltipBody(this.tooltipBodyTarget)
-    }
-  }
-
-  initialMarkup: SafeHtml | string = ''
-  hostClass = 'ts-chart-host'
-  hostStyle = 'position:relative;width:100%;height:320px'
-  protected defaultTooltipContent?: ChartTooltipContent
-  protected defaultTooltipText?: string
+  protected readonly initialMarkup = signal<SafeHtml | string>('')
+  protected readonly hostStyle = computed(() => {
+    const options = this.options()
+    const layout = resolveChartAdapterLayout(options)
+    return [
+      'position:relative',
+      `width:${options.width === undefined ? '100%' : `${options.width}px`}`,
+      options.height !== undefined
+        ? `height:${options.height}px`
+        : layout.aspectRatio === undefined
+          ? 'height:320px'
+          : `aspect-ratio:${layout.aspectRatio}`,
+      options.style,
+    ]
+      .filter(Boolean)
+      .join(';')
+  })
+  protected readonly defaultTooltipContent = signal<
+    ChartTooltipContent | undefined
+  >(undefined)
+  protected readonly defaultTooltipText = signal<string | undefined>(undefined)
 
   private readonly sanitizer = inject(DomSanitizer)
+  private readonly destroyRef = inject(DestroyRef)
   private readonly generatedId = inject(ChartIdGenerator).next()
+  private readonly surface =
+    viewChild.required<ElementRef<HTMLElement>>('surface')
+  private readonly tooltipOutlet = viewChild.required('tooltipOutlet', {
+    read: ViewContainerRef,
+  })
+  private readonly defaultTooltipBody =
+    viewChild.required<TemplateRef<unknown>>('defaultTooltipBody')
+  private readonly tooltipBodyDirective = contentChild<
+    ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
+  >(ChartTooltipBodyDirective)
   private adapter?: ChartAdapter<
     ChartRendererHostOptions<TDatum, TXValue, TYValue>,
     TDatum,
@@ -166,60 +168,59 @@ export class Chart<
   >
   private activeRenderSvg?: ChartSvgRenderer<TDatum, TXValue, TYValue>
   private renderer?: ChartRenderer<TDatum, TXValue, TYValue>
-  private tooltipBody?: ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
+  private activeTooltipBody?: ChartTooltipBodyDirective<
+    TDatum,
+    TXValue,
+    TYValue
+  >
   private tooltipBodyTarget?: ChartTooltipBodyTarget<TDatum, TXValue, TYValue>
   private tooltipBodyView?: EmbeddedViewRef<
     ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
   >
 
   constructor() {
-    afterNextRender(() => {
-      this.adapter?.mount(this.surface.nativeElement)
+    effect(() => {
+      this.updateAdapter(this.options(), this.tooltipBodyDirective())
+    })
+    if (inject(PLATFORM_ID) === 'browser') {
+      afterNextRender({
+        write: () => {
+          this.adapter?.mount(this.surface().nativeElement)
+        },
+      })
+    }
+    this.destroyRef.onDestroy(() => {
+      this.adapter?.destroy()
+      this.destroyTooltipBodyView()
     })
   }
 
-  ngOnChanges(_changes: SimpleChanges) {
-    if (!this.options) return
-    const layout = resolveChartAdapterLayout(this.options)
-    this.hostClass = this.options.class
-      ? `ts-chart-host ${this.options.class}`
-      : 'ts-chart-host'
-    this.hostStyle = [
-      'position:relative',
-      `width:${this.options.width === undefined ? '100%' : `${this.options.width}px`}`,
-      this.options.height !== undefined
-        ? `height:${this.options.height}px`
-        : layout.aspectRatio === undefined
-          ? 'height:320px'
-          : `aspect-ratio:${layout.aspectRatio}`,
-      this.options.style,
-    ]
-      .filter(Boolean)
-      .join(';')
-
-    this.updateAdapter()
-  }
-
-  ngOnDestroy() {
-    this.adapter?.destroy()
-    this.destroyTooltipBodyView()
-  }
-
-  private updateAdapter() {
-    if (!this.options) return
+  private updateAdapter(
+    options: ChartOptions<TDatum, TXValue, TYValue>,
+    tooltipBody:
+      ChartTooltipBodyDirective<TDatum, TXValue, TYValue> | undefined,
+  ) {
+    const tooltipBodyChanged = tooltipBody !== this.activeTooltipBody
+    if (tooltipBodyChanged) {
+      this.destroyTooltipBodyView()
+      this.activeTooltipBody = tooltipBody
+    }
     const hostOptions = toHostOptions(
-      this.options,
-      this.options.idPrefix ?? this.generatedId,
-      this.resolveRenderer(this.options.renderSvg ?? renderChartSvg),
-      this.tooltipBody ? this.handleTooltipBodyChange : undefined,
+      options,
+      options.idPrefix ?? this.generatedId,
+      this.resolveRenderer(options.renderSvg ?? renderChartSvg),
+      tooltipBody ? this.handleTooltipBodyChange : undefined,
     )
     if (!this.adapter) {
       this.adapter = createChartRendererAdapter(hostOptions)
-      this.initialMarkup = this.sanitizer.bypassSecurityTrustHtml(
-        this.adapter.prerender(),
+      this.initialMarkup.set(
+        this.sanitizer.bypassSecurityTrustHtml(this.adapter.prerender()),
       )
     } else {
       this.adapter.update(hostOptions)
+    }
+    if (tooltipBodyChanged && tooltipBody && this.tooltipBodyTarget) {
+      this.renderTooltipBody(this.tooltipBodyTarget)
     }
   }
 
@@ -248,18 +249,20 @@ export class Chart<
   private renderTooltipBody(
     target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue>,
   ) {
-    const directive = this.tooltipBody
+    const directive = this.activeTooltipBody
     if (!directive) return
-    this.defaultTooltipText =
-      typeof target.content === 'string' ? target.content : undefined
-    this.defaultTooltipContent =
-      typeof target.content === 'string' ? undefined : target.content
+    this.defaultTooltipText.set(
+      typeof target.content === 'string' ? target.content : undefined,
+    )
+    this.defaultTooltipContent.set(
+      typeof target.content === 'string' ? undefined : target.content,
+    )
 
     const context = this.tooltipBodyView?.context
     if (context) {
       context.points = target.points
       context.content = target.content
-      context.defaultBody = this.defaultTooltipBody
+      context.defaultBody = this.defaultTooltipBody()
       context.pinned = target.pinned
       context.dismiss = target.dismiss
       this.moveTooltipBodyView(target.element)
@@ -270,12 +273,12 @@ export class Chart<
     const nextContext = {
       points: target.points,
       content: target.content,
-      defaultBody: this.defaultTooltipBody,
+      defaultBody: this.defaultTooltipBody(),
       pinned: target.pinned,
       dismiss: target.dismiss,
     } as ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
     nextContext.$implicit = nextContext
-    this.tooltipBodyView = this.tooltipOutlet.createEmbeddedView(
+    this.tooltipBodyView = this.tooltipOutlet().createEmbeddedView(
       directive.templateRef,
       nextContext,
     )
@@ -293,9 +296,9 @@ export class Chart<
     const view = this.tooltipBodyView
     if (!view) return
     const nodes = [...view.rootNodes] as Node[]
-    const index = this.tooltipOutlet.indexOf(view)
+    const index = this.tooltipOutlet().indexOf(view)
     if (index === -1) view.destroy()
-    else this.tooltipOutlet.remove(index)
+    else this.tooltipOutlet().remove(index)
     for (const node of nodes) node.parentNode?.removeChild(node)
     this.tooltipBodyView = undefined
   }

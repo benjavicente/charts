@@ -15,6 +15,7 @@ export default defineConfig({
     ],
     exclude: [
       ...configDefaults.exclude,
+      'packages/angular-charts/**/*.test.ts',
       'packages/solid-charts/**/*.test.tsx',
       'packages/svelte-charts/**/*.test.ts',
     ],

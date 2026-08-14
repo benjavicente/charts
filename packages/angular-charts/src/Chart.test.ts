@@ -8,11 +8,7 @@ import {
 } from '@angular/core'
 import type { TemplateRef } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import {
-  BrowserDynamicTestingModule,
-  platformBrowserDynamicTesting,
-} from '@angular/platform-browser-dynamic/testing'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineChart, lineY } from '@tanstack/charts'
 import type { ChartTooltipContent } from '@tanstack/charts'
 import { tooltip } from '@tanstack/charts/tooltip'
@@ -123,7 +119,7 @@ class TestNestedTooltipLifecycle {
             [testTemplateOutlet]="tooltip.defaultBody"
           ></ng-container>
           <span data-testid="tooltip-point">{{
-            tooltip.points[0]?.datum.id
+            tooltip.points[0]?.datum?.id
           }}</span>
           <span data-testid="tooltip-pinned">{{ tooltip.pinned }}</span>
           <tanstack-chart [options]="nestedOptions" />
@@ -149,155 +145,160 @@ class TooltipHost {
   }
 }
 
-beforeAll(() => {
-  TestBed.initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-  )
-})
-
 afterEach(() => TestBed.resetTestingModule())
 
-describe('Angular adapter', () => {
-  it('mounts and updates the shared host', () => {
-    TestBed.configureTestingModule({ imports: [Chart] })
-    const fixture = TestBed.createComponent(Chart)
-    fixture.componentRef.setInput('options', {
-      definition,
-      width: 480,
-      height: 260,
-      ariaLabel: 'Revenue',
-    })
-    fixture.detectChanges()
+export function registerAngularAdapterTests() {
+  describe('Angular adapter', () => {
+    it('mounts and updates the shared host', () => {
+      TestBed.configureTestingModule({ imports: [Chart] })
+      const fixture = TestBed.createComponent(Chart)
+      fixture.componentRef.setInput('options', {
+        definition,
+        width: 480,
+        height: 260,
+        ariaLabel: 'Revenue',
+      })
+      fixture.detectChanges()
 
-    expect(
-      fixture.nativeElement.querySelector('svg')?.getAttribute('aria-label'),
-    ).toBe('Revenue')
+      expect(
+        fixture.nativeElement.querySelector('svg')?.getAttribute('aria-label'),
+      ).toBe('Revenue')
 
-    fixture.componentRef.setInput('options', {
-      definition,
-      width: 480,
-      height: 260,
-      ariaLabel: 'Updated revenue',
-    })
-    fixture.detectChanges()
-    expect(
-      fixture.nativeElement.querySelector('svg')?.getAttribute('aria-label'),
-    ).toBe('Updated revenue')
-    fixture.destroy()
-  })
-
-  it('composes and cleans up a pinned tooltip body', () => {
-    nestedTooltipDestroys = 0
-    TestBed.configureTestingModule({ imports: [TooltipHost] })
-    const fixture = TestBed.createComponent(TooltipHost)
-    fixture.detectChanges()
-
-    const svg = fixture.nativeElement.querySelector(
-      'svg[aria-label="Revenue"]',
-    ) as SVGSVGElement | null
-    if (!svg) throw new Error('Expected an SVG chart')
-    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 0,
-      top: 0,
-      right: 480,
-      bottom: 260,
-      left: 0,
-      width: 480,
-      height: 260,
-      toJSON: () => ({}),
+      fixture.componentRef.setInput('options', {
+        definition,
+        width: 480,
+        height: 260,
+        ariaLabel: 'Updated revenue',
+      })
+      fixture.detectChanges()
+      expect(
+        fixture.nativeElement.querySelector('svg')?.getAttribute('aria-label'),
+      ).toBe('Updated revenue')
+      fixture.destroy()
     })
 
-    svg.dispatchEvent(
-      new MouseEvent('pointermove', {
-        bubbles: true,
-        clientX: 52,
-        clientY: 200,
-      }),
-    )
-    fixture.detectChanges()
+    it('composes and cleans up a pinned tooltip body', () => {
+      nestedTooltipDestroys = 0
+      TestBed.configureTestingModule({ imports: [TooltipHost] })
+      const fixture = TestBed.createComponent(TooltipHost)
+      fixture.detectChanges()
 
-    const portal = document.querySelector<HTMLElement>(
-      '[data-ts-chart-tooltip-portal]',
-    )
-    const body = portal?.querySelector<HTMLElement>('.ts-chart-tooltip__body')
-    expect(portal).not.toBeNull()
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="rich-tooltip"]'),
-    ).toBeNull()
-    expect(
-      body?.querySelector('.ts-chart-tooltip__title')?.textContent?.trim(),
-    ).toBe('First')
-    expect(
+      const svg = fixture.nativeElement.querySelector(
+        'svg[aria-label="Revenue"]',
+      ) as SVGSVGElement | null
+      if (!svg) throw new Error('Expected an SVG chart')
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        x: 0,
+        y: 0,
+        top: 0,
+        right: 480,
+        bottom: 260,
+        left: 0,
+        width: 480,
+        height: 260,
+        toJSON: () => ({}),
+      })
+
+      svg.dispatchEvent(
+        new MouseEvent('pointermove', {
+          bubbles: true,
+          clientX: 52,
+          clientY: 200,
+        }),
+      )
+      fixture.detectChanges()
+
+      const portal = document.querySelector<HTMLElement>(
+        '[data-ts-chart-tooltip-portal]',
+      )
+      const body = portal?.querySelector<HTMLElement>('.ts-chart-tooltip__body')
+      expect(portal).not.toBeNull()
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="rich-tooltip"]'),
+      ).toBeNull()
+      expect(
+        body?.querySelector('.ts-chart-tooltip__title')?.textContent?.trim(),
+      ).toBe('First')
+      expect(
+        body
+          ?.querySelector('.ts-chart-tooltip__row')
+          ?.textContent?.replaceAll(/\s/g, ''),
+      ).toBe('Value2')
+      expect(
+        body?.querySelector<HTMLElement>('.ts-chart-tooltip__swatch')?.style
+          .background,
+      ).toBe('rgb(37, 99, 235)')
+      expect(
+        body?.querySelector('[data-testid="tooltip-point"]')?.textContent,
+      ).toBe('a')
+      expect(
+        body?.querySelector('[data-testid="tooltip-pinned"]')?.textContent,
+      ).toBe('false')
+      expect(
+        body?.querySelector('svg[aria-label="Nested trend"]'),
+      ).not.toBeNull()
+      expect(body?.hasAttribute('inert')).toBe(true)
+      expect(portal?.getAttribute('role')).toBe('status')
+
+      const customBody = body?.querySelector('[data-testid="rich-tooltip"]')
+      const nestedChart = body?.querySelector('tanstack-chart')
+      fixture.componentInstance.options = {
+        ...fixture.componentInstance.options,
+        ariaLabel: 'Updated revenue',
+      }
+      fixture.detectChanges()
+      expect(body?.querySelector('[data-testid="rich-tooltip"]')).toBe(
+        customBody,
+      )
+      expect(body?.querySelector('tanstack-chart')).toBe(nestedChart)
+
+      svg.dispatchEvent(
+        new MouseEvent('click', {
+          bubbles: true,
+          clientX: 52,
+          clientY: 200,
+        }),
+      )
+      fixture.detectChanges()
+
+      expect(
+        body?.querySelector('[data-testid="tooltip-pinned"]')?.textContent,
+      ).toBe('true')
+      expect(portal?.dataset.sticky).toBe('true')
+      expect(body?.hasAttribute('inert')).toBe(false)
+      expect(portal?.getAttribute('role')).toBe('dialog')
+      expect(portal?.querySelector('.ts-chart-tooltip__body')).toBe(body)
+
       body
-        ?.querySelector('.ts-chart-tooltip__row')
-        ?.textContent?.replaceAll(/\s/g, ''),
-    ).toBe('Value2')
-    expect(
-      body?.querySelector<HTMLElement>('.ts-chart-tooltip__swatch')?.style
-        .background,
-    ).toBe('rgb(37, 99, 235)')
-    expect(
-      body?.querySelector('[data-testid="tooltip-point"]')?.textContent,
-    ).toBe('a')
-    expect(
-      body?.querySelector('[data-testid="tooltip-pinned"]')?.textContent,
-    ).toBe('false')
-    expect(body?.querySelector('svg[aria-label="Nested trend"]')).not.toBeNull()
-    expect(body?.hasAttribute('inert')).toBe(true)
-    expect(portal?.getAttribute('role')).toBe('status')
+        ?.querySelector<HTMLButtonElement>('button')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      fixture.detectChanges()
 
-    const customBody = body?.querySelector('[data-testid="rich-tooltip"]')
-    const nestedChart = body?.querySelector('tanstack-chart')
-    fixture.componentInstance.options = {
-      ...fixture.componentInstance.options,
-      ariaLabel: 'Updated revenue',
-    }
-    fixture.detectChanges()
-    expect(body?.querySelector('[data-testid="rich-tooltip"]')).toBe(customBody)
-    expect(body?.querySelector('tanstack-chart')).toBe(nestedChart)
+      expect(portal?.hidden).toBe(true)
+      expect(body?.querySelector('[data-testid="rich-tooltip"]')).toBeNull()
+      expect(body?.querySelector('svg[aria-label="Nested trend"]')).toBeNull()
+      expect(nestedTooltipDestroys).toBe(1)
 
-    svg.dispatchEvent(
-      new MouseEvent('click', {
-        bubbles: true,
-        clientX: 52,
-        clientY: 200,
-      }),
-    )
-    fixture.detectChanges()
+      svg.dispatchEvent(
+        new MouseEvent('pointermove', {
+          bubbles: true,
+          clientX: 52,
+          clientY: 200,
+        }),
+      )
+      fixture.detectChanges()
+      expect(
+        body?.querySelector('svg[aria-label="Nested trend"]'),
+      ).not.toBeNull()
 
-    expect(
-      body?.querySelector('[data-testid="tooltip-pinned"]')?.textContent,
-    ).toBe('true')
-    expect(portal?.dataset.sticky).toBe('true')
-    expect(body?.hasAttribute('inert')).toBe(false)
-    expect(portal?.getAttribute('role')).toBe('dialog')
-    expect(portal?.querySelector('.ts-chart-tooltip__body')).toBe(body)
-
-    body
-      ?.querySelector<HTMLButtonElement>('button')
-      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    fixture.detectChanges()
-
-    expect(portal?.hidden).toBe(true)
-    expect(body?.querySelector('[data-testid="rich-tooltip"]')).toBeNull()
-    expect(body?.querySelector('svg[aria-label="Nested trend"]')).toBeNull()
-    expect(nestedTooltipDestroys).toBe(1)
-
-    svg.dispatchEvent(
-      new MouseEvent('pointermove', {
-        bubbles: true,
-        clientX: 52,
-        clientY: 200,
-      }),
-    )
-    fixture.detectChanges()
-    expect(body?.querySelector('svg[aria-label="Nested trend"]')).not.toBeNull()
-
-    fixture.destroy()
-    expect(document.querySelector('[data-ts-chart-tooltip-portal]')).toBeNull()
-    expect(document.querySelector('svg[aria-label="Nested trend"]')).toBeNull()
-    expect(nestedTooltipDestroys).toBe(2)
+      fixture.destroy()
+      expect(
+        document.querySelector('[data-ts-chart-tooltip-portal]'),
+      ).toBeNull()
+      expect(
+        document.querySelector('svg[aria-label="Nested trend"]'),
+      ).toBeNull()
+      expect(nestedTooltipDestroys).toBe(2)
+    })
   })
-})
+}

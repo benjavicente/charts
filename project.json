@@ -34,6 +34,25 @@
         "command": "vitest run --config vitest.config.ts --pool=threads"
       }
     },
+    "test-angular": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["test-angular-browser", "test-angular-ssr"],
+      "options": {
+        "command": "node -e \"console.log('Angular tests passed.')\""
+      }
+    },
+    "test-angular-browser": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter @charts-poc/angular-example test"
+      }
+    },
+    "test-angular-ssr": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter @charts-poc/angular-example test:ssr"
+      }
+    },
     "test-solid": {
       "executor": "nx:run-commands",
       "options": {
@@ -74,6 +93,7 @@
       "executor": "nx:run-commands",
       "dependsOn": [
         "test-dom",
+        "test-angular",
         "test-solid",
         "test-solid-ssr",
         "test-svelte",
@@ -160,6 +180,7 @@
         "docs-check",
         "typecheck",
         "test-dom",
+        "test-angular",
         "test-solid",
         "test-solid-ssr",
         "test-svelte",
@@ -186,6 +207,7 @@
         "docs-check",
         "typecheck",
         "test-dom",
+        "test-angular",
         "test-solid",
         "test-solid-ssr",
         "test-svelte",

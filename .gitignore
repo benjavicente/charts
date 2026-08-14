@@ -9,6 +9,7 @@ dist-paged
 .benchmark-output
 .release-artifacts
 .expo/
+.angular/
 .nx/cache
 .nx/prettier-cache
 .nx/typescript

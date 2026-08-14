@@ -1,4 +1,4 @@
-import { Directive, Input, TemplateRef, inject } from '@angular/core'
+import { Directive, TemplateRef, inject, input } from '@angular/core'
 import type { ChartDefinition, ChartValue } from '@tanstack/charts'
 import type { ChartTooltipBodyTemplateContext } from './types'
 
@@ -11,8 +11,9 @@ export class ChartTooltipBodyDirective<
   TXValue extends ChartValue = ChartValue,
   TYValue extends ChartValue = ChartValue,
 > {
-  @Input({ required: true, alias: 'tanstackChartTooltipBody' })
-  declare definition: ChartDefinition<TDatum, TXValue, TYValue>
+  readonly definition = input.required<
+    ChartDefinition<TDatum, TXValue, TYValue>
+  >({ alias: 'tanstackChartTooltipBody' })
 
   readonly templateRef =
     inject<

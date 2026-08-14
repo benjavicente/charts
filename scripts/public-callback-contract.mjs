@@ -578,10 +578,10 @@ const callbackInventory = {
   // Consumer-called handles and lifecycle/service protocols are methods, not
   // application callbacks.
   serviceMethod: [
-    ['@tanstack/angular-charts:src/Chart.ts:Chart', 'ngOnChanges ngOnDestroy'],
+    ['@tanstack/angular-charts:src/Chart.ts:Chart', 'options'],
     [
       '@tanstack/angular-charts:src/ChartTooltipBody.ts:ChartTooltipBodyDirective',
-      'ngTemplateContextGuard',
+      'definition ngTemplateContextGuard',
     ],
     [
       '@tanstack/charts:src/adapter-shared.ts:ChartAdapter',

@@ -7,9 +7,9 @@ description: Complete option and type reference for the @tanstack/charts/angular
 import { Chart } from '@tanstack/charts/angular'
 ```
 
-`Chart` is a standalone component with selector `tanstack-chart`. Its required
-`options` input accepts a chart definition. Replace the definition identity
-when captured application values change.
+`Chart` is a standalone Angular 20 component with selector `tanstack-chart`.
+Its required `options` signal input accepts a chart definition. Replace the
+definition identity when captured application values change.
 The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimation`,
 `keyboard`, `maxFocusDistance`, and `spatialIndex`.
 
@@ -37,8 +37,14 @@ The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimatio
 | `className`          | `string`                                     | None                  | Extra class on the rendered SVG surface                |
 
 Callbacks are functions inside `options`, not Angular outputs. Replace the
-complete `options` value when chart state changes so `OnPush` change detection
-delivers an `ngOnChanges` update.
+complete `options` value when chart state changes so the input signal's effect
+updates the shared adapter. When an application owns options in a signal, use
+`options.set(...)` or `options.update(...)` and bind `[options]="options()"`.
+
+The component uses Angular's function-based `input`, `viewChild`, and
+`contentChild` APIs. Cleanup is registered through `DestroyRef`; there are no
+decorator inputs, query decorators, or lifecycle callback methods in the
+adapter.
 
 ## Tooltip body template
 

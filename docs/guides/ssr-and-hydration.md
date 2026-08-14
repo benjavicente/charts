@@ -17,14 +17,15 @@ runtime and renderer on the server and in the browser.
 | [Solid](../framework/solid/adapter.md)     | Complete SVG                        | Hydrates before the shared host mounts              |
 | [Svelte](../framework/svelte/adapter.md)   | Complete SVG                        | Hydrates before the shared host mounts              |
 | [Octane](../framework/octane/adapter.md)   | Complete SVG; Canvas shell          | Hydrates and adopts the existing surface            |
-| [Angular](../framework/angular/adapter.md) | Not yet a verified adapter contract | Browser mount, immutable update, and teardown       |
+| [Angular](../framework/angular/adapter.md) | Complete SVG                        | Browser mount, signal update, and teardown          |
 | [Lit](../framework/lit/adapter.md)         | Not yet a verified adapter contract | Browser registration, update, disconnect, reconnect |
 | [Alpine](../framework/alpine/adapter.md)   | None                                | Browser-only directive                              |
 
 For adapters with server output, the browser must render the same definition,
-dimensions, formatters, and component tree. Angular and Lit may run
-inside applications with their own server infrastructure, but this library
-does not yet promise or test adapter hydration for them.
+dimensions, formatters, and component tree. Angular server rendering is tested
+with `renderApplication`, but hydration is not yet part of its verified adapter
+contract. Lit may run inside applications with server infrastructure, but this
+library does not yet promise or test server output or hydration for it.
 
 ## Give the server a real size
 

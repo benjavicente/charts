@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec",
+    "types": ["vitest/globals"]
+  },
+  "include": [
+    "src/**/*.spec.ts",
+    "src/**/*.d.ts",
+    "src/test-providers.ts",
+    "../../packages/charts-core/src/index.ts",
+    "../../packages/charts-core/src/angular.ts",
+    "../../packages/charts-core/src/tooltip.ts",
+    "../../packages/charts-core/src/tooltip-portal.ts",
+    "../../packages/angular-charts/src/index.ts",
+    "../../packages/angular-charts/src/ChartTooltipBody.type-test.ts"
+  ]
+}
