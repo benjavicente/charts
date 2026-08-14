@@ -5,7 +5,7 @@ applications use the Angular standalone component from
 `@tanstack/charts/angular`.
 
 ```sh
-pnpm add @tanstack/charts @angular/core @angular/platform-browser
+pnpm add @tanstack/charts @angular/cdk @angular/core @angular/platform-browser
 ```
 
 ```ts
@@ -26,10 +26,11 @@ export class RevenueChart {
 ```
 
 Angular 20 or newer is required. The component uses function-based signal
-inputs and queries, `DestroyRef` cleanup, and browser-only `afterNextRender`
-mounting. Bind one typed immutable `options` value, including a value read from
-an application signal. Definitions and marks stay on `@tanstack/charts`; the
-Angular component and adapter-only types stay on `@tanstack/charts/angular`.
+inputs and queries, Angular CDK portals for projected tooltip bodies,
+`DestroyRef` cleanup, and browser-only `afterNextRender` mounting. Bind one
+typed immutable `options` value, including a value read from an application
+signal. Definitions and marks stay on `@tanstack/charts`; the Angular component
+and adapter-only types stay on `@tanstack/charts/angular`.
 
 See the complete zoneless Angular 20 application in
 [`examples/charts-angular`](https://github.com/TanStack/charts/tree/main/examples/charts-angular).

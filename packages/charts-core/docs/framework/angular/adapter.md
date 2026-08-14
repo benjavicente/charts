@@ -4,7 +4,7 @@ description: Render TanStack Charts with an Angular standalone component.
 ---
 
 ```sh
-pnpm add @tanstack/charts @angular/common @angular/core @angular/platform-browser
+pnpm add @tanstack/charts @angular/cdk @angular/common @angular/core @angular/platform-browser
 ```
 
 ```ts
@@ -42,10 +42,10 @@ An Angular `effect` creates or updates one shared adapter controller when the
 `options` input signal or tooltip-body content query changes. Function-based
 `viewChild` and `contentChild` queries replace query decorators.
 `afterNextRender` mounts only on Angular's browser platform, and `DestroyRef`
-cleans up the controller and embedded tooltip view. Replace the complete
-`options` value when chart state changes; mutating the existing object does not
-change the input signal. Callbacks such as `onFocusChange` are functions inside
-`options`, not Angular outputs.
+cleans up the controller and CDK tooltip portal. Replace the complete `options`
+value when chart state changes; mutating the existing object does not change the
+input signal. Callbacks such as `onFocusChange` are functions inside `options`,
+not Angular outputs.
 
 ## Browser and server status
 
@@ -77,7 +77,8 @@ content. The definition binding is the generic type witness for strict template
 checking; it does not configure behavior a second time. Render
 `tooltip.defaultBody` through `NgTemplateOutlet` to retain native rows and
 swatches. The shared host owns focus, placement, portaling, inert transient
-state, pinning, and dismissal; Angular owns the embedded-view lifecycle.
+state, pinning, and dismissal; Angular CDK owns the embedded-view portal
+lifecycle.
 
 See the [`Chart` reference](./reference/chart.md) and
 [Chart Definition API](../../reference/chart-definitions.md). A complete

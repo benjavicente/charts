@@ -19,6 +19,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core'
+import { DomPortalOutlet, TemplatePortal } from '@angular/cdk/portal'
 import { DomSanitizer } from '@angular/platform-browser'
 import type { EmbeddedViewRef } from '@angular/core'
 import { resolveChartAdapterLayout } from '@tanstack/charts/adapter'
@@ -190,6 +191,7 @@ export class Chart<
     TXValue,
     TYValue
   >
+  #tooltipBodyOutlet?: DomPortalOutlet
   #tooltipBodyView?: EmbeddedViewRef<
     ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
   >
@@ -247,19 +249,28 @@ export class Chart<
     const directive = this.#activeTooltipBody
     if (!directive) return
 
+    if (
+      this.#tooltipBodyOutlet &&
+      this.#tooltipBodyOutlet.outletElement !== target.element
+    ) {
+      this.#destroyTooltipBodyView()
+    }
+
     this.#tooltipBodyContext ??= this.#createTooltipBodyContext()
-    if (!this.#tooltipBodyView) {
-      this.#tooltipBodyView = this.tooltipOutlet().createEmbeddedView(
+    if (!this.#tooltipBodyOutlet) {
+      const portal = new TemplatePortal(
         directive.templateRef,
+        this.tooltipOutlet(),
         this.#tooltipBodyContext,
       )
+      const outlet = new DomPortalOutlet(target.element)
+      this.#tooltipBodyView = outlet.attach(portal)
+      this.#tooltipBodyOutlet = outlet
     }
-    // This is the same logical-view arrangement used by Angular CDK's
-    // TemplatePortal + DomPortalOutlet, kept local to avoid a CDK dependency.
-    for (const node of this.#tooltipBodyView.rootNodes) {
-      target.element.append(node)
-    }
-    this.#tooltipBodyView.detectChanges()
+
+    // The renderer can call this callback outside Angular's normal turn.
+    // Keep updates immediate while CDK owns the portal lifecycle.
+    this.#tooltipBodyView?.detectChanges()
   }
 
   #createTooltipBodyContext() {
@@ -286,11 +297,8 @@ export class Chart<
   }
 
   #destroyTooltipBodyView() {
-    const view = this.#tooltipBodyView
-    if (!view) return
-    const index = this.tooltipOutlet().indexOf(view)
-    if (index === -1) view.destroy()
-    else this.tooltipOutlet().remove(index)
+    this.#tooltipBodyOutlet?.dispose()
+    this.#tooltipBodyOutlet = undefined
     this.#tooltipBodyView = undefined
   }
 }
