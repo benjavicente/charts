@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "ng build",
+    "benchmark:prepare": "node src/benchmark/prepare-baseline.mjs",
+    "benchmark:build": "ng build --configuration benchmark",
+    "benchmark:ssr": "ng test --no-watch --include src/benchmark/benchmark.ssr.spec.ts",
+    "benchmark:serve": "ng serve --configuration benchmark",
     "start": "ng serve",
     "test": "ng test --no-watch --exclude src/app/app.ssr.spec.ts",
     "test:ssr": "ng test --no-watch --include src/app/app.ssr.spec.ts"

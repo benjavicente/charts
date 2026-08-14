@@ -9,7 +9,12 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
+    "module": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@benchmark/old-chart": [".benchmark-baseline/index.ts"],
+      "@benchmark/new-chart": ["../../packages/angular-charts/src/index.ts"]
+    }
   },
   "angularCompilerOptions": {
     "strictInjectionParameters": true,

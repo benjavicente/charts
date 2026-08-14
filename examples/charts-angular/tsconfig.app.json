@@ -9,7 +9,9 @@
     "src/**/*.d.ts",
     "../../packages/charts-core/src/index.ts",
     "../../packages/charts-core/src/angular.ts",
-    "../../packages/angular-charts/src/index.ts"
+    "../../packages/angular-charts/src/index.ts",
+    ".benchmark-baseline/index.ts",
+    "src/benchmark/**/*.ts"
   ],
   "exclude": ["src/**/*.spec.ts"]
 }

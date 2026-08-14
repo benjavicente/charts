@@ -13,6 +13,7 @@
     "../../packages/charts-core/src/tooltip.ts",
     "../../packages/charts-core/src/tooltip-portal.ts",
     "../../packages/angular-charts/src/index.ts",
-    "../../packages/angular-charts/src/ChartTooltipBody.type-test.ts"
+    "../../packages/angular-charts/src/ChartTooltipBody.type-test.ts",
+    ".benchmark-baseline/index.ts"
   ]
 }

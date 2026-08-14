@@ -33,6 +33,14 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "benchmark": {
+              "browser": "src/benchmark/main.ts",
+              "index": "src/benchmark/index.html",
+              "outputPath": "dist/benchmark",
+              "optimization": true,
+              "extractLicenses": false,
+              "sourceMap": false
             }
           },
           "defaultConfiguration": "production"
@@ -45,6 +53,9 @@
             },
             "production": {
               "buildTarget": "charts-angular:build:production"
+            },
+            "benchmark": {
+              "buildTarget": "charts-angular:build:benchmark"
             }
           },
           "defaultConfiguration": "development"
