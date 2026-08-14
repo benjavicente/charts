@@ -15,12 +15,12 @@ public API reference.
   adapters without recreating the renderer on every update.
 - **Angular-owned tooltip views:** tooltip context is a stable object whose
   getters read a signal-backed target, so Angular templates react to tooltip
-  changes without mutating an `EmbeddedViewRef` context by hand. An internal
-  standalone outlet component is mounted with `createComponent` on the
-  renderer-owned tooltip element; `ApplicationRef` and `ViewContainerRef` now
-  own attachment, change detection, and destruction instead of moving root DOM
-  nodes manually. The outlet is `OnPush` because tooltip updates explicitly
-  trigger its embedded view.
+  changes without mutating an `EmbeddedViewRef` context by hand. The outlet
+  follows Angular CDK's `TemplatePortal`/`DomPortalOutlet` arrangement: the
+  embedded view is created in the chart's original `ViewContainerRef`, then
+  its root nodes are re-appended to the renderer-owned tooltip element before
+  change detection. This preserves the template's logical Angular view tree;
+  the small equivalent is kept local to avoid adding a CDK peer dependency.
 - **Function-based Angular APIs:** `input`, `viewChild`, `contentChild`,
   `effect`, `afterNextRender`, and `DestroyRef` are used instead of input,
   query, and lifecycle decorators. The public selector, required `options`
