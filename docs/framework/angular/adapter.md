@@ -47,10 +47,10 @@ value when chart state changes; mutating the existing object does not change the
 input signal. Callbacks such as `onFocusChange` are functions inside `options`,
 not Angular outputs.
 
-The component boundary delegates renderer lifecycle to an injection-context
-`injectChartRenderer` hook and tooltip state/portal reconciliation to
-`injectChartTooltipBody`; the public component remains responsible for the
-Angular template, inputs, and queries.
+The component keeps the renderer graph directly and uses a local
+`injectChartTooltipBody` helper for tooltip state and portal reconciliation.
+The returned `tooltipBody` controller is visible to the template, so nested
+signals can be read directly without alias fields.
 
 ## Browser and server status
 

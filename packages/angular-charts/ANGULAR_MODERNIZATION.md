@@ -22,13 +22,11 @@ public API reference.
   original `ViewContainerRef`, moves its root nodes to the renderer-owned
   tooltip element, and owns detach/disposal. This preserves the template's
   logical Angular view tree while removing duplicated portal lifecycle code.
-- **Injection-context rendering hooks:** the public `Chart` class now owns only
-  the Angular boundary—inputs, queries, and template-facing signals.
-  `injectChartRenderer` owns renderer creation, host-option adaptation, adapter
-  synchronization, prerendering, browser mounting, and teardown.
-  `injectChartTooltipBody` owns tooltip target state, template context, and
-  portal reconciliation. Both hooks run in the component's injection context,
-  following the same composable pattern as the other Angular adapters.
+- **Local tooltip hook:** the public `Chart` class keeps the renderer graph
+  directly in the component, while the local `injectChartTooltipBody` helper
+  owns tooltip target state, template context, and portal reconciliation. Its
+  returned controller is template-visible as `tooltipBody`, so the template
+  reads nested signals without alias fields.
 - **Function-based Angular APIs:** `input`, `viewChild`, `contentChild`,
   `effect`, `afterNextRender`, and `DestroyRef` are used instead of input,
   query, and lifecycle decorators. The public selector, required `options`
