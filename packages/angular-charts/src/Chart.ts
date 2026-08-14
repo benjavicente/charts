@@ -56,6 +56,7 @@ class ChartIdGenerator {
 
 @Component({
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: '<ng-container #outlet />',
 })
 class ChartTooltipBodyOutlet {
@@ -204,16 +205,13 @@ export class Chart<
       { options, tooltipBody },
       previous,
     ): ChartAdapterState<TDatum, TXValue, TYValue> => {
+      if (previous) return previous.value
       const hostOptions = toHostOptions(
         options,
         options.idPrefix ?? this.#generatedId,
         this.#resolveRenderer(options.renderSvg ?? renderChartSvg),
         tooltipBody ? this.#handleTooltipBodyChange : undefined,
       )
-      if (previous) {
-        previous.value.adapter.update(hostOptions)
-        return previous.value
-      }
       const adapter = createChartRendererAdapter(hostOptions)
       return {
         adapter,
@@ -226,11 +224,20 @@ export class Chart<
 
   constructor() {
     effect(() => {
-      // Read both source signals directly so updates are synchronized even
-      // when the linked adapter state keeps the same adapter instance.
-      this.options()
+      const options = this.options()
       const tooltipBody = this.tooltipBodyDirective()
-      this.#adapterState()
+      const adapter = this.#adapterState().adapter
+      adapter.update(
+        toHostOptions(
+          options,
+          options.idPrefix ?? this.#generatedId,
+          this.#resolveRenderer(options.renderSvg ?? renderChartSvg),
+          tooltipBody ? this.#handleTooltipBodyChange : undefined,
+        ),
+      )
+    })
+    effect(() => {
+      const tooltipBody = this.tooltipBodyDirective()
       this.#syncTooltipBody(tooltipBody)
     })
     // Angular does not invoke afterNextRender callbacks during SSR.
