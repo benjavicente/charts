@@ -12,6 +12,7 @@ describe('Angular chart example', () => {
     const svg = fixture.nativeElement.querySelector('svg')
     expect(host.classList.contains('ts-chart-host')).toBe(true)
     expect(host.classList.contains('revenue-chart')).toBe(true)
+    expect(host.style.minHeight).toBe('12rem')
     expect(svg?.getAttribute('aria-label')).toBe('Monthly revenue')
   })
 

@@ -25,14 +25,18 @@ const definition = defineChart({
   template: `
     <main>
       <h1>Angular revenue chart</h1>
-      <tanstack-chart [options]="options()" />
+      <div
+        tanstack-chart
+        [options]="options()"
+        class="revenue-chart"
+        style="min-height: 12rem"
+      ></div>
     </main>
   `,
 })
 export class App {
   readonly options = signal<ChartOptions<(typeof revenue)[number]>>({
     definition,
-    class: 'revenue-chart',
     height: 320,
     ariaLabel: 'Monthly revenue',
   })

@@ -15,7 +15,7 @@ import { tooltip } from '@tanstack/charts/tooltip'
 
 @Component({
   imports: [Chart],
-  template: `<tanstack-chart [options]="chartOptions()" />`,
+  template: `<div tanstack-chart [options]="chartOptions()"></div>`,
 })
 export class RevenueChart {
   readonly chartOptions = signal({
@@ -62,15 +62,15 @@ hydration is not yet part of the adapter's tested public contract.
 
 ## Presentation and rendering
 
-`options.class` binds to the inner host's class attribute. Angular merges it
-with the static `.ts-chart-host` class; the adapter does not concatenate class
-strings. The string `options.style` applies to the same host, while
-`options.className` applies to the rendered SVG surface. The package exposes
-the SVG component only. Use `renderSvg` to replace SVG serialization without
-replacing the shared host.
+The component selector is `div[tanstack-chart]`, so the element carrying the
+directive is also the chart host. Put classes and styles directly on that
+element; Angular merges them with the static `ts-chart-host` class and sizing
+styles. `options.class` and `options.style` are no longer Angular options.
+`options.className` still applies to the rendered SVG surface. Use `renderSvg`
+to replace SVG serialization without replacing the shared host.
 
 Exports: `Chart`, `ChartCommonOptions`, `ChartOptions`,
-`ChartPresentationOptions`, `ChartTooltipBodyDirective`,
+`ChartTooltipBodyDirective`,
 `ChartTooltipBodyRenderContext`, `ChartTooltipBodyTemplateContext`,
 `ChartDefinition`, and `ChartPoint`.
 

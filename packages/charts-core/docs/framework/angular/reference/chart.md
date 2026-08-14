@@ -7,8 +7,9 @@ description: Complete option and type reference for the @tanstack/charts/angular
 import { Chart } from '@tanstack/charts/angular'
 ```
 
-`Chart` is a standalone Angular 20 component with selector `tanstack-chart`.
-Its required `options` signal input accepts a chart definition. Replace the
+`Chart` is a standalone Angular 20 component with selector
+`div[tanstack-chart]`. Its required `options` signal input accepts a chart
+definition. Put classes and styles directly on the host element. Replace the
 definition identity when captured application values change.
 The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimation`,
 `keyboard`, `maxFocusDistance`, and `spatialIndex`.
@@ -32,8 +33,6 @@ The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimatio
 | `onFocusGroupChange` | `(points: readonly ChartPoint[]) => void`    | None                  | Grouped focus callback                                 |
 | `onSelect`           | `(point: ChartPoint \| null) => void`        | None                  | Pointer or keyboard activation callback                |
 | `onRender`           | `(context: ChartRenderContext) => void`      | None                  | Live SVG, container, and scene after rendering         |
-| `class`              | `string`                                     | None                  | Extra class on the inner `.ts-chart-host`              |
-| `style`              | `string`                                     | None                  | Inner host declarations applied after adapter sizing   |
 | `className`          | `string`                                     | None                  | Extra class on the rendered SVG surface                |
 
 Callbacks are functions inside `options`, not Angular outputs. Replace the
@@ -51,7 +50,7 @@ adapter.
 Project a typed tooltip template into the chart:
 
 ```html
-<tanstack-chart [options]="chartOptions">
+<div tanstack-chart [options]="chartOptions">
   <ng-template [tanstackChartTooltipBody]="chartOptions.definition" let-tooltip>
     <ng-container [ngTemplateOutlet]="tooltip.defaultBody" />
     <series-detail [points]="tooltip.points" />
@@ -59,7 +58,7 @@ Project a typed tooltip template into the chart:
     <button type="button" (click)="tooltip.dismiss()">Close</button>
     }
   </ng-template>
-</tanstack-chart>
+</div>
 ```
 
 Import `ChartTooltipBodyDirective` and Angular's `NgTemplateOutlet` beside
@@ -71,9 +70,8 @@ definition.
 
 ## Exported types
 
-`ChartCommonOptions` contains common host and presentation options.
-`ChartOptions` adds the definition. `ChartPresentationOptions` contains
-`class` and `style`. The package exports `ChartTooltipBodyDirective`,
+`ChartCommonOptions` contains common host options. `ChartOptions` adds the
+definition. Classes and styles belong to the host `<div>`. The package exports `ChartTooltipBodyDirective`,
 `ChartTooltipBodyRenderContext`, and `ChartTooltipBodyTemplateContext`. It also
 re-exports `ChartDefinition` and `ChartPoint`.
 

@@ -3,7 +3,6 @@ export { ChartTooltipBodyDirective } from './ChartTooltipBody'
 export type {
   ChartCommonOptions,
   ChartOptions,
-  ChartPresentationOptions,
   ChartTooltipBodyRenderContext,
   ChartTooltipBodyTemplateContext,
 } from './types'

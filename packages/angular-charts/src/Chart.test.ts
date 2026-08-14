@@ -112,7 +112,7 @@ class TestNestedTooltipLifecycle {
     TestTemplateOutlet,
   ],
   template: `
-    <tanstack-chart [options]="options">
+    <div tanstack-chart [options]="options">
       <ng-template [tanstackChartTooltipBody]="options.definition" let-tooltip>
         <div data-testid="rich-tooltip">
           <ng-container
@@ -122,12 +122,12 @@ class TestNestedTooltipLifecycle {
             tooltip.points[0]?.datum?.id
           }}</span>
           <span data-testid="tooltip-pinned">{{ tooltip.pinned }}</span>
-          <tanstack-chart [options]="nestedOptions" />
+          <div tanstack-chart [options]="nestedOptions"></div>
           <test-nested-tooltip-lifecycle />
           <button type="button" (click)="tooltip.dismiss()">Close</button>
         </div>
       </ng-template>
-    </tanstack-chart>
+    </div>
   `,
 })
 class TooltipHost {
@@ -241,7 +241,7 @@ export function registerAngularAdapterTests() {
       expect(portal?.getAttribute('role')).toBe('status')
 
       const customBody = body?.querySelector('[data-testid="rich-tooltip"]')
-      const nestedChart = body?.querySelector('tanstack-chart')
+      const nestedChart = body?.querySelector('div[tanstack-chart]')
       fixture.componentInstance.options = {
         ...fixture.componentInstance.options,
         ariaLabel: 'Updated revenue',
@@ -250,7 +250,7 @@ export function registerAngularAdapterTests() {
       expect(body?.querySelector('[data-testid="rich-tooltip"]')).toBe(
         customBody,
       )
-      expect(body?.querySelector('tanstack-chart')).toBe(nestedChart)
+      expect(body?.querySelector('div[tanstack-chart]')).toBe(nestedChart)
 
       svg.dispatchEvent(
         new MouseEvent('click', {

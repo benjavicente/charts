@@ -25,7 +25,7 @@ const definition = defineChart({
 @Component({
   selector: 'app-server-chart',
   imports: [Chart],
-  template: '<tanstack-chart [options]="options" />',
+  template: '<div tanstack-chart [options]="options"></div>',
 })
 class ServerChart {
   readonly options: ChartOptions<(typeof rows)[number]> = {

@@ -22,7 +22,7 @@ const definition = defineChart({
   selector: 'test-server-chart',
   standalone: true,
   imports: [Chart],
-  template: '<tanstack-chart [options]="options" />',
+  template: '<div tanstack-chart [options]="options"></div>',
 })
 class ServerChartHost {
   options: ChartOptions<(typeof rows)[number]> = {

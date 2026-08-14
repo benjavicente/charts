@@ -49,20 +49,26 @@ class ChartIdGenerator {
   }
 }
 
+function untrackedComputed<T>(computation: () => T) {
+  return computed(() => untracked(computation))
+}
+
 @Component({
-  selector: 'tanstack-chart',
+  selector: 'div[tanstack-chart]',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
+  host: {
+    class: 'ts-chart-host',
+    '[style]': 'hostStyle()',
+  },
   template: `
-    <div class="ts-chart-host" [class]="options().class" [style]="hostStyle()">
-      <div
-        #surface
-        class="ts-chart-surface"
-        style="width: 100%; height: 100%"
-        [innerHTML]="initialMarkup()"
-      ></div>
-    </div>
+    <div
+      #surface
+      class="ts-chart-surface"
+      style="width: 100%; height: 100%"
+      [innerHTML]="initialMarkup()"
+    ></div>
     <ng-container #tooltipOutlet></ng-container>
     <ng-content select="ng-template[tanstackChartTooltipBody]" />
     <ng-template #defaultTooltipBody>
@@ -160,14 +166,12 @@ export class Chart<
       this.tooltipBodyDirective() ? this.tooltipBody.onTargetChange : undefined,
     )
   })
-  readonly #adapter = computed(() =>
-    untracked(() => createChartRendererAdapter(this.#hostOptions())),
+  readonly #adapter = untrackedComputed(() =>
+    createChartRendererAdapter(this.#hostOptions()),
   )
 
-  protected readonly initialMarkup = computed(() =>
-    this.#sanitizer.bypassSecurityTrustHtml(
-      untracked(() => this.#adapter().prerender()),
-    ),
+  protected readonly initialMarkup = untrackedComputed(() =>
+    this.#sanitizer.bypassSecurityTrustHtml(this.#adapter().prerender()),
   )
   protected readonly hostStyle = computed(() =>
     resolveChartHostStyle(this.options()),
@@ -324,7 +328,7 @@ function resolveChartHostStyle<
       : layout.aspectRatio === undefined
         ? 'height:320px'
         : `aspect-ratio:${layout.aspectRatio}`
-  return `position:relative;width:${width};${size}${options.style ? `;${options.style}` : ''}`
+  return `display:block;position:relative;width:${width};${size}`
 }
 
 function toHostOptions<
@@ -341,13 +345,7 @@ function toHostOptions<
       ) => void)
     | undefined,
 ): ChartRendererHostOptions<TDatum, TXValue, TYValue> {
-  const {
-    class: _class,
-    style: _style,
-    renderSvg: _renderSvg,
-    onRender,
-    ...hostOptions
-  } = options
+  const { renderSvg: _renderSvg, onRender, ...hostOptions } = options
   return {
     ...hostOptions,
     idPrefix,

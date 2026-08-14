@@ -29,27 +29,26 @@ public API reference.
   reads nested signals without alias fields.
 - **Function-based Angular APIs:** `input`, `viewChild`, `contentChild`,
   `effect`, `afterNextRender`, and `DestroyRef` are used instead of input,
-  query, and lifecycle decorators. The public selector, required `options`
-  input, callbacks, and tooltip template contract remain unchanged.
+  query, and lifecycle decorators. The required `options` input, callbacks, and
+  tooltip template contract remain unchanged; the selector and host styling
+  contract intentionally changed as documented below.
 - **Runtime private implementation details:** implementation fields and
   methods use ECMAScript `#private` where Angular does not inspect the field.
   Query signal fields intentionally remain `protected`: Angular's compiler
   rejects `#private` fields passed to `viewChild` or `contentChild`.
 - **Simpler host sizing:** host style assembly is a small pure helper. It keeps
-  the existing `position`, width, height/aspect-ratio defaults, and user style
-  precedence while avoiding an intermediate filtered array.
+  the `display`, position, width, and height/aspect-ratio defaults while user
+  classes and styles stay on the host element.
 - **Browser-only mounting:** `afterNextRender` owns the DOM mount, while
   `PLATFORM_ID` is retained as a defensive check for DOM-emulating SSR test
   runners. Server rendering still uses `prerender()` and never requires a DOM
   mount in a real server platform.
-- **Stable DOM for compatibility:** the `.ts-chart-host` wrapper is retained.
-  Angular can bind classes and styles directly to the `tanstack-chart` host,
-  and projected tooltip templates would continue to work. We retain the inner
-  wrapper for now because moving `.ts-chart-host` onto the custom element would
-  alter the DOM shape and CSS selectors, while the custom element is inline by
-  default and would need a new display rule for width/height to behave the same.
-  The adapter therefore modernizes its internals without making that breaking
-  structural change.
+- **Breaking host simplification:** the selector is now `div[tanstack-chart]`.
+  The caller's element is the `.ts-chart-host`, so classes and styles belong on
+  the element instead of an Angular-only `ChartPresentationOptions` object.
+  This intentionally changes the DOM shape and selector contract to remove the
+  redundant wrapper; the migration is documented as a breaking Angular adapter
+  change.
 - **Angular-native tests:** the component tests run through Angular CLI's
   native Vitest builder, so Angular's compiler and partial-Ivy linking are
   exercised instead of maintaining a separate hand-built Vitest environment.

@@ -13,7 +13,7 @@ interface Datum {
   standalone: true,
   imports: [Chart, ChartTooltipBodyDirective],
   template: `
-    <tanstack-chart [options]="options">
+    <div tanstack-chart [options]="options">
       <ng-template [tanstackChartTooltipBody]="options.definition" let-tooltip>
         {{ tooltip.points[0]?.datum?.id }}
         <button
@@ -24,7 +24,7 @@ interface Datum {
           Close
         </button>
       </ng-template>
-    </tanstack-chart>
+    </div>
   `,
 })
 class ChartTooltipBodyTypeTest {
