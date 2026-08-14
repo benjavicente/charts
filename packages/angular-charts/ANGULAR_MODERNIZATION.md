@@ -11,6 +11,13 @@ public API reference.
   content-query signals directly, then synchronizes the existing adapter
   instance. This follows the signal-driven structure used by the Angular Query
   and Angular Hotkeys adapters without recreating the renderer on every update.
+- **Angular-owned tooltip views:** tooltip context is a stable object whose
+  getters read a signal-backed target, so Angular templates react to tooltip
+  changes without mutating an `EmbeddedViewRef` context by hand. An internal
+  standalone outlet component is mounted with `createComponent` on the
+  renderer-owned tooltip element; `ApplicationRef` and `ViewContainerRef` now
+  own attachment, change detection, and destruction instead of moving root DOM
+  nodes manually.
 - **Function-based Angular APIs:** `input`, `viewChild`, `contentChild`,
   `effect`, `afterNextRender`, and `DestroyRef` are used instead of input,
   query, and lifecycle decorators. The public selector, required `options`

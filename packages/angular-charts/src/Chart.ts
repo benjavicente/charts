@@ -1,9 +1,12 @@
 import {
   APP_ID,
+  ApplicationRef,
   ChangeDetectionStrategy,
   Component,
+  ComponentRef,
   DestroyRef,
   ElementRef,
+  EnvironmentInjector,
   Injectable,
   PLATFORM_ID,
   TemplateRef,
@@ -12,6 +15,7 @@ import {
   afterNextRender,
   computed,
   contentChild,
+  createComponent,
   effect,
   inject,
   input,
@@ -19,7 +23,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core'
-import type { EmbeddedViewRef } from '@angular/core'
 import { DomSanitizer } from '@angular/platform-browser'
 import type { SafeHtml } from '@angular/platform-browser'
 import { resolveChartAdapterLayout } from '@tanstack/charts/adapter'
@@ -33,7 +36,6 @@ import type {
   ChartRendererRenderContext,
   ChartSvgRenderer,
   ChartTooltipBodyTarget,
-  ChartTooltipContent,
   ChartValue,
 } from '@tanstack/charts'
 import { ChartTooltipBodyDirective } from './ChartTooltipBody'
@@ -53,6 +55,28 @@ class ChartIdGenerator {
 }
 
 @Component({
+  standalone: true,
+  template: '<ng-container #outlet />',
+})
+class ChartTooltipBodyOutlet {
+  protected readonly outlet = viewChild.required('outlet', {
+    read: ViewContainerRef,
+  })
+
+  render<TContext>(template: TemplateRef<TContext>, context: TContext) {
+    const outlet = this.outlet()
+    if (outlet.length === 0) {
+      outlet.createEmbeddedView(template, context)
+    }
+    outlet.get(0)?.detectChanges()
+  }
+
+  clear() {
+    this.outlet().clear()
+  }
+}
+
+@Component({
   selector: 'tanstack-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,7 +90,6 @@ class ChartIdGenerator {
         [innerHTML]="initialMarkup()"
       ></div>
     </div>
-    <ng-container #tooltipOutlet></ng-container>
     <ng-content select="ng-template[tanstackChartTooltipBody]" />
     <ng-template #defaultTooltipBody>
       @if (defaultTooltipText() !== undefined) {
@@ -126,27 +149,36 @@ export class Chart<
 > {
   readonly options = input.required<ChartOptions<TDatum, TXValue, TYValue>>()
 
+  readonly #tooltipBodyTarget = signal<ChartTooltipBodyTarget<
+    TDatum,
+    TXValue,
+    TYValue
+  > | null>(null)
+
   protected readonly initialMarkup = computed(
     () => this.#adapterState().initialMarkup,
   )
   protected readonly hostStyle = computed(() =>
     resolveChartHostStyle(this.options()),
   )
-  protected readonly defaultTooltipContent = signal<
-    ChartTooltipContent | undefined
-  >(undefined)
-  protected readonly defaultTooltipText = signal<string | undefined>(undefined)
+  protected readonly defaultTooltipContent = computed(() => {
+    const content = this.#tooltipBodyTarget()?.content
+    return typeof content === 'string' ? undefined : content
+  })
+  protected readonly defaultTooltipText = computed(() => {
+    const content = this.#tooltipBodyTarget()?.content
+    return typeof content === 'string' ? content : undefined
+  })
 
   readonly #sanitizer = inject(DomSanitizer)
+  readonly #applicationRef = inject(ApplicationRef)
   readonly #destroyRef = inject(DestroyRef)
+  readonly #environmentInjector = inject(EnvironmentInjector)
   readonly #platformId = inject(PLATFORM_ID)
   readonly #generatedId = inject(ChartIdGenerator).next()
 
   protected readonly surface =
     viewChild.required<ElementRef<HTMLElement>>('surface')
-  protected readonly tooltipOutlet = viewChild.required('tooltipOutlet', {
-    read: ViewContainerRef,
-  })
   protected readonly defaultTooltipBody =
     viewChild.required<TemplateRef<unknown>>('defaultTooltipBody')
   protected readonly tooltipBodyDirective = contentChild<
@@ -155,10 +187,13 @@ export class Chart<
   #activeRenderSvg?: ChartSvgRenderer<TDatum, TXValue, TYValue>
   #renderer?: ChartRenderer<TDatum, TXValue, TYValue>
   #activeTooltipBody?: ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
-  #tooltipBodyTarget?: ChartTooltipBodyTarget<TDatum, TXValue, TYValue>
-  #tooltipBodyView?: EmbeddedViewRef<
-    ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
+  #tooltipBodyContext?: ChartTooltipBodyTemplateContext<
+    TDatum,
+    TXValue,
+    TYValue
   >
+  #tooltipBodyOutlet?: ComponentRef<ChartTooltipBodyOutlet>
+  #tooltipBodyElement?: HTMLElement
 
   readonly #adapterState = linkedSignal({
     source: () => ({
@@ -209,7 +244,7 @@ export class Chart<
     })
     this.#destroyRef.onDestroy(() => {
       this.#adapterState().adapter.destroy()
-      this.#destroyTooltipBodyView()
+      this.#destroyTooltipBodyOutlet()
     })
   }
 
@@ -219,11 +254,12 @@ export class Chart<
   ) {
     const tooltipBodyChanged = tooltipBody !== this.#activeTooltipBody
     if (tooltipBodyChanged) {
-      this.#destroyTooltipBodyView()
+      this.#destroyTooltipBodyOutlet()
       this.#activeTooltipBody = tooltipBody
     }
-    if (tooltipBodyChanged && tooltipBody && this.#tooltipBodyTarget) {
-      this.#renderTooltipBody(this.#tooltipBodyTarget)
+    const target = this.#tooltipBodyTarget()
+    if (tooltipBodyChanged && tooltipBody && target) {
+      this.#renderTooltipBody(target)
     }
   }
 
@@ -238,68 +274,65 @@ export class Chart<
   readonly #handleTooltipBodyChange = (
     target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue> | null,
   ) => {
+    this.#tooltipBodyTarget.set(target)
     if (!target) {
-      this.#tooltipBodyTarget = undefined
-      this.#destroyTooltipBodyView()
+      this.#destroyTooltipBodyOutlet()
       return
     }
-    this.#tooltipBodyTarget = target
     this.#renderTooltipBody(target)
   }
 
   #renderTooltipBody(target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue>) {
     const directive = this.#activeTooltipBody
     if (!directive) return
-    this.defaultTooltipText.set(
-      typeof target.content === 'string' ? target.content : undefined,
-    )
-    this.defaultTooltipContent.set(
-      typeof target.content === 'string' ? undefined : target.content,
-    )
 
-    const context = this.#tooltipBodyView?.context
-    if (context) {
-      context.points = target.points
-      context.content = target.content
-      context.defaultBody = this.defaultTooltipBody()
-      context.pinned = target.pinned
-      context.dismiss = target.dismiss
-      this.#moveTooltipBodyView(target.element)
-      this.#tooltipBodyView?.detectChanges()
-      return
+    this.#tooltipBodyContext ??= this.#createTooltipBodyContext()
+    let outlet = this.#tooltipBodyOutlet
+    if (this.#tooltipBodyElement !== target.element) {
+      this.#destroyTooltipBodyOutlet()
+      outlet = createComponent(ChartTooltipBodyOutlet, {
+        environmentInjector: this.#environmentInjector,
+        hostElement: target.element,
+      })
+      this.#tooltipBodyOutlet = outlet
+      this.#applicationRef.attachView(outlet.hostView)
+      outlet.changeDetectorRef.detectChanges()
+      this.#tooltipBodyElement = target.element
     }
+    outlet?.instance.render(directive.templateRef, this.#tooltipBodyContext)
+  }
 
-    const nextContext = {
-      points: target.points,
-      content: target.content,
-      defaultBody: this.defaultTooltipBody(),
-      pinned: target.pinned,
-      dismiss: target.dismiss,
+  #createTooltipBodyContext() {
+    const chart = this
+    const context = {
+      get points() {
+        return chart.#tooltipBodyTarget()?.points ?? []
+      },
+      get content() {
+        return chart.#tooltipBodyTarget()?.content ?? ''
+      },
+      get defaultBody() {
+        return chart.defaultTooltipBody()
+      },
+      get pinned() {
+        return chart.#tooltipBodyTarget()?.pinned ?? false
+      },
+      get dismiss() {
+        return chart.#tooltipBodyTarget()?.dismiss ?? (() => {})
+      },
     } as ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
-    nextContext.$implicit = nextContext
-    this.#tooltipBodyView = this.tooltipOutlet().createEmbeddedView(
-      directive.templateRef,
-      nextContext,
-    )
-    this.#moveTooltipBodyView(target.element)
-    this.#tooltipBodyView.detectChanges()
+    context.$implicit = context
+    return context
   }
 
-  #moveTooltipBodyView(target: HTMLElement) {
-    for (const node of this.#tooltipBodyView?.rootNodes ?? []) {
-      target.append(node)
-    }
-  }
-
-  #destroyTooltipBodyView() {
-    const view = this.#tooltipBodyView
-    if (!view) return
-    const nodes = [...view.rootNodes] as Node[]
-    const index = this.tooltipOutlet().indexOf(view)
-    if (index === -1) view.destroy()
-    else this.tooltipOutlet().remove(index)
-    for (const node of nodes) node.parentNode?.removeChild(node)
-    this.#tooltipBodyView = undefined
+  #destroyTooltipBodyOutlet() {
+    const outlet = this.#tooltipBodyOutlet
+    if (!outlet) return
+    outlet.instance.clear()
+    this.#applicationRef.detachView(outlet.hostView)
+    outlet.destroy()
+    this.#tooltipBodyOutlet = undefined
+    this.#tooltipBodyElement = undefined
   }
 }
 
