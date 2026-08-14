@@ -120,37 +120,12 @@ export class Chart<
   TXValue extends ChartValue = ChartValue,
   TYValue extends ChartValue = ChartValue,
 > {
-  readonly options = input.required<ChartOptions<TDatum, TXValue, TYValue>>()
-
-  readonly #tooltipBodyTarget = signal<ChartTooltipBodyTarget<
-    TDatum,
-    TXValue,
-    TYValue
-  > | null>(null)
-
-  // Prerendering is only the initial SSR/client seed. Live changes are
-  // applied by adapter.update(), so this must not track the options signal.
-  protected readonly initialMarkup = computed(() =>
-    this.#sanitizer.bypassSecurityTrustHtml(
-      untracked(() => this.#adapter().prerender()),
-    ),
-  )
-  protected readonly hostStyle = computed(() =>
-    resolveChartHostStyle(this.options()),
-  )
-  protected readonly defaultTooltipContent = computed(() => {
-    const content = this.#tooltipBodyTarget()?.content
-    return typeof content === 'string' ? undefined : content
-  })
-  protected readonly defaultTooltipText = computed(() => {
-    const content = this.#tooltipBodyTarget()?.content
-    return typeof content === 'string' ? content : undefined
-  })
-
   readonly #sanitizer = inject(DomSanitizer)
   readonly #destroyRef = inject(DestroyRef)
   readonly #platformId = inject(PLATFORM_ID)
   readonly #generatedId = inject(ChartIdGenerator).next()
+
+  readonly options = input.required<ChartOptions<TDatum, TXValue, TYValue>>()
 
   protected readonly surface =
     viewChild.required<ElementRef<HTMLElement>>('surface')
@@ -162,15 +137,12 @@ export class Chart<
   protected readonly tooltipBodyDirective = contentChild<
     ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
   >(ChartTooltipBodyDirective)
-  #activeTooltipBody?: ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
-  #tooltipBodyContext?: ChartTooltipBodyTemplateContext<
+
+  readonly #tooltipBodyTarget = signal<ChartTooltipBodyTarget<
     TDatum,
     TXValue,
     TYValue
-  >
-  #tooltipBodyView?: EmbeddedViewRef<
-    ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
-  >
+  > | null>(null)
 
   readonly #renderSvg = computed(
     () => this.options().renderSvg ?? renderChartSvg,
@@ -192,6 +164,46 @@ export class Chart<
   readonly #adapter = computed(() =>
     untracked(() => createChartRendererAdapter(this.#hostOptions())),
   )
+
+  // Prerendering is only the initial SSR/client seed. Live changes are
+  // applied by adapter.update(), so this must not track the options signal.
+  protected readonly initialMarkup = computed(() =>
+    this.#sanitizer.bypassSecurityTrustHtml(
+      untracked(() => this.#adapter().prerender()),
+    ),
+  )
+  protected readonly hostStyle = computed(() =>
+    resolveChartHostStyle(this.options()),
+  )
+  protected readonly defaultTooltipContent = computed(() => {
+    const content = this.#tooltipBodyTarget()?.content
+    return typeof content === 'string' ? undefined : content
+  })
+  protected readonly defaultTooltipText = computed(() => {
+    const content = this.#tooltipBodyTarget()?.content
+    return typeof content === 'string' ? content : undefined
+  })
+
+  #activeTooltipBody?: ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
+  #tooltipBodyContext?: ChartTooltipBodyTemplateContext<
+    TDatum,
+    TXValue,
+    TYValue
+  >
+  #tooltipBodyView?: EmbeddedViewRef<
+    ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
+  >
+
+  readonly #handleTooltipBodyChange = (
+    target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue> | null,
+  ) => {
+    this.#tooltipBodyTarget.set(target)
+    if (!target) {
+      this.#destroyTooltipBodyView()
+      return
+    }
+    this.#renderTooltipBody(target)
+  }
 
   constructor() {
     effect(() => {
@@ -229,17 +241,6 @@ export class Chart<
     if (tooltipBodyChanged && tooltipBody && target) {
       this.#renderTooltipBody(target)
     }
-  }
-
-  readonly #handleTooltipBodyChange = (
-    target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue> | null,
-  ) => {
-    this.#tooltipBodyTarget.set(target)
-    if (!target) {
-      this.#destroyTooltipBodyView()
-      return
-    }
-    this.#renderTooltipBody(target)
   }
 
   #renderTooltipBody(target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue>) {
