@@ -83,3 +83,6 @@ See the [`Chart` reference](./reference/chart.md) and
 [Chart Definition API](../../reference/chart-definitions.md). A complete
 zoneless Angular 20 application and its native tests live in
 [`examples/charts-angular`](https://github.com/TanStack/charts/tree/main/examples/charts-angular).
+
+Maintainer-facing implementation rationale is recorded in
+[`packages/angular-charts/ANGULAR_MODERNIZATION.md`](https://github.com/TanStack/charts/blob/main/packages/angular-charts/ANGULAR_MODERNIZATION.md).
