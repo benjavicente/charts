@@ -47,6 +47,11 @@ value when chart state changes; mutating the existing object does not change the
 input signal. Callbacks such as `onFocusChange` are functions inside `options`,
 not Angular outputs.
 
+The component boundary delegates renderer lifecycle to an injection-context
+`injectChartRenderer` hook and tooltip state/portal reconciliation to
+`injectChartTooltipBody`; the public component remains responsible for the
+Angular template, inputs, and queries.
+
 ## Browser and server status
 
 The Angular 20 example is compiled and tested with Angular CLI's native

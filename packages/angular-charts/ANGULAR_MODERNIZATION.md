@@ -22,6 +22,13 @@ public API reference.
   original `ViewContainerRef`, moves its root nodes to the renderer-owned
   tooltip element, and owns detach/disposal. This preserves the template's
   logical Angular view tree while removing duplicated portal lifecycle code.
+- **Injection-context rendering hooks:** the public `Chart` class now owns only
+  the Angular boundary—inputs, queries, and template-facing signals.
+  `injectChartRenderer` owns renderer creation, host-option adaptation, adapter
+  synchronization, prerendering, browser mounting, and teardown.
+  `injectChartTooltipBody` owns tooltip target state, template context, and
+  portal reconciliation. Both hooks run in the component's injection context,
+  following the same composable pattern as the other Angular adapters.
 - **Function-based Angular APIs:** `input`, `viewChild`, `contentChild`,
   `effect`, `afterNextRender`, and `DestroyRef` are used instead of input,
   query, and lifecycle decorators. The public selector, required `options`
@@ -38,8 +45,11 @@ public API reference.
   runners. Server rendering still uses `prerender()` and never requires a DOM
   mount in a real server platform.
 - **Stable DOM for compatibility:** the `.ts-chart-host` wrapper is retained.
-  Moving it onto the `tanstack-chart` host element would alter the DOM shape,
-  CSS selectors, and inline-element layout behavior for existing applications.
+  Angular can bind classes and styles directly to the `tanstack-chart` host,
+  and projected tooltip templates would continue to work. We retain the inner
+  wrapper for now because moving `.ts-chart-host` onto the custom element would
+  alter the DOM shape and CSS selectors, while the custom element is inline by
+  default and would need a new display rule for width/height to behave the same.
   The adapter therefore modernizes its internals without making that breaking
   structural change.
 - **Angular-native tests:** the component tests run through Angular CLI's
