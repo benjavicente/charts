@@ -15,23 +15,20 @@ import {
   effect,
   inject,
   input,
-  linkedSignal,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core'
 import { DomSanitizer } from '@angular/platform-browser'
-import type { SafeHtml } from '@angular/platform-browser'
 import type { EmbeddedViewRef } from '@angular/core'
 import { resolveChartAdapterLayout } from '@tanstack/charts/adapter'
 import { createChartRendererAdapter } from '@tanstack/charts/adapter/renderer'
 import { renderChartSvg } from '@tanstack/charts/svg'
 import { createSvgChartRenderer } from '@tanstack/charts/svg/renderer'
 import type {
-  ChartAdapter,
   ChartRenderer,
   ChartRendererHostOptions,
   ChartRendererRenderContext,
-  ChartSvgRenderer,
   ChartTooltipBodyTarget,
   ChartValue,
 } from '@tanstack/charts'
@@ -131,8 +128,12 @@ export class Chart<
     TYValue
   > | null>(null)
 
-  protected readonly initialMarkup = computed(
-    () => this.#adapterState().initialMarkup,
+  // Prerendering is only the initial SSR/client seed. Live changes are
+  // applied by adapter.update(), so this must not track the options signal.
+  protected readonly initialMarkup = computed(() =>
+    this.#sanitizer.bypassSecurityTrustHtml(
+      untracked(() => this.#adapter().prerender()),
+    ),
   )
   protected readonly hostStyle = computed(() =>
     resolveChartHostStyle(this.options()),
@@ -161,8 +162,6 @@ export class Chart<
   protected readonly tooltipBodyDirective = contentChild<
     ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
   >(ChartTooltipBodyDirective)
-  #activeRenderSvg?: ChartSvgRenderer<TDatum, TXValue, TYValue>
-  #renderer?: ChartRenderer<TDatum, TXValue, TYValue>
   #activeTooltipBody?: ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
   #tooltipBodyContext?: ChartTooltipBodyTemplateContext<
     TDatum,
@@ -173,45 +172,30 @@ export class Chart<
     ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
   >
 
-  readonly #adapterState = linkedSignal({
-    source: () => ({
-      options: this.options(),
-      tooltipBody: this.tooltipBodyDirective(),
-    }),
-    computation: (
-      { options, tooltipBody },
-      previous,
-    ): ChartAdapterState<TDatum, TXValue, TYValue> => {
-      if (previous) return previous.value
-      const hostOptions = toHostOptions(
-        options,
-        options.idPrefix ?? this.#generatedId,
-        this.#resolveRenderer(options.renderSvg ?? renderChartSvg),
-        tooltipBody ? this.#handleTooltipBodyChange : undefined,
-      )
-      const adapter = createChartRendererAdapter(hostOptions)
-      return {
-        adapter,
-        initialMarkup: this.#sanitizer.bypassSecurityTrustHtml(
-          adapter.prerender(),
-        ),
-      }
-    },
+  readonly #renderSvg = computed(
+    () => this.options().renderSvg ?? renderChartSvg,
+  )
+  readonly #renderer = computed(() =>
+    createSvgChartRenderer<TDatum, TXValue, TYValue>(this.#renderSvg()),
+  )
+  readonly #hostOptions = computed(() => {
+    const options = this.options()
+    return toHostOptions(
+      options,
+      options.idPrefix ?? this.#generatedId,
+      this.#renderer(),
+      this.tooltipBodyDirective() ? this.#handleTooltipBodyChange : undefined,
+    )
   })
+  // The adapter is a mutable controller, not derived application state. Keep
+  // one instance like Solid's local adapter and synchronize it in the effect.
+  readonly #adapter = computed(() =>
+    untracked(() => createChartRendererAdapter(this.#hostOptions())),
+  )
 
   constructor() {
     effect(() => {
-      const options = this.options()
-      const tooltipBody = this.tooltipBodyDirective()
-      const adapter = this.#adapterState().adapter
-      adapter.update(
-        toHostOptions(
-          options,
-          options.idPrefix ?? this.#generatedId,
-          this.#resolveRenderer(options.renderSvg ?? renderChartSvg),
-          tooltipBody ? this.#handleTooltipBodyChange : undefined,
-        ),
-      )
+      this.#adapter().update(this.#hostOptions())
     })
     effect(() => {
       const tooltipBody = this.tooltipBodyDirective()
@@ -223,11 +207,11 @@ export class Chart<
         // Keep the explicit check for DOM-emulating test runners, which can
         // execute render callbacks while using the server renderer.
         if (this.#platformId !== 'browser') return
-        this.#adapterState().adapter.mount(this.surface().nativeElement)
+        this.#adapter().mount(this.surface().nativeElement)
       },
     })
     this.#destroyRef.onDestroy(() => {
-      this.#adapterState().adapter.destroy()
+      this.#adapter().destroy()
       this.#destroyTooltipBodyView()
     })
   }
@@ -245,14 +229,6 @@ export class Chart<
     if (tooltipBodyChanged && tooltipBody && target) {
       this.#renderTooltipBody(target)
     }
-  }
-
-  #resolveRenderer(renderSvg: ChartSvgRenderer<TDatum, TXValue, TYValue>) {
-    if (!this.#renderer || renderSvg !== this.#activeRenderSvg) {
-      this.#activeRenderSvg = renderSvg
-      this.#renderer = createSvgChartRenderer(renderSvg)
-    }
-    return this.#renderer
   }
 
   readonly #handleTooltipBodyChange = (
@@ -316,20 +292,6 @@ export class Chart<
     else this.tooltipOutlet().remove(index)
     this.#tooltipBodyView = undefined
   }
-}
-
-type ChartAdapterState<
-  TDatum,
-  TXValue extends ChartValue,
-  TYValue extends ChartValue,
-> = {
-  adapter: ChartAdapter<
-    ChartRendererHostOptions<TDatum, TXValue, TYValue>,
-    TDatum,
-    TXValue,
-    TYValue
-  >
-  initialMarkup: SafeHtml | string
 }
 
 function resolveChartHostStyle<

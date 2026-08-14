@@ -7,12 +7,14 @@ public API reference.
 ## Changes and reasons
 
 - **Signal-based adapter state:** the adapter and its server-safe initial SVG
-  markup are held in a linked signal. An Angular `effect` reads the input and
-  content-query signals directly, then synchronizes the existing adapter
-  instance. The linked-signal computation only creates the controller; the
-  imperative `adapter.update()` belongs to the effect. This follows the
-  signal-driven structure used by the Angular Query and Angular Hotkeys
-  adapters without recreating the renderer on every update.
+  markup are modeled as separate graph nodes. Pure `computed` signals derive
+  the renderer and `ChartRendererHostOptions`; a dependency-free `computed`
+  with `untracked` creates one mutable adapter controller; a separate
+  dependency-free `computed` captures its initial `prerender()` output. An
+  Angular `effect` synchronizes `adapter.update(hostOptions)` while render
+  scheduling owns mount and teardown. This mirrors Solid's `createMemo` for
+  renderer/options and local adapter ownership without recreating the
+  renderer on every update.
 - **Angular-owned tooltip views:** tooltip context is a stable object whose
   getters read a signal-backed target, so Angular templates react to tooltip
   changes without mutating an `EmbeddedViewRef` context by hand. The outlet
