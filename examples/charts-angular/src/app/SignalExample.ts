@@ -1,22 +1,18 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { NgTemplateOutlet } from '@angular/common'
-import {
-  ChartComponent,
-  ChartTooltipBodyDirective,
-} from '@tanstack/charts/angular'
+import { Chart, ChartTooltipBodyDirective } from '@tanstack/charts/angular'
 import { injectComparisonState } from './inject-comparison-state'
 import type { ComparisonCase, ComparisonOptions } from './comparison-charts'
 
 @Component({
   selector: 'signal-example',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ChartComponent, ChartTooltipBodyDirective, NgTemplateOutlet],
+  imports: [Chart, ChartTooltipBodyDirective, NgTemplateOutlet],
   template: `
     <article class="chart-card" data-adapter="signal">
       <header class="chart-card__header">
         <h3>Signal adapter</h3>
-        <span class="chart-card__badge">ChartComponent</span>
+        <span class="chart-card__badge">Chart</span>
       </header>
       <div
         class="chart-stage"
@@ -51,7 +47,7 @@ import type { ComparisonCase, ComparisonOptions } from './comparison-charts'
           </div>
         } @else {
           <div class="chart-placeholder">
-            ChartComponent unmounted. Its resources have been released.
+            Chart unmounted. Its resources have been released.
           </div>
         }
       </div>

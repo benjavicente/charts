@@ -23,7 +23,7 @@ describe('public callback contract', () => {
 
   it('excludes ECMAScript private fields and methods from the public inventory', () => {
     const signals = inventory.filter((surface) =>
-      surface.id.includes('src/ChartComponent.ts:ChartComponent.'),
+      surface.id.includes('src/Chart.ts:Chart.'),
     )
     expect(signals.map((surface) => surface.member)).toEqual(['options'])
     expect(signals.some((surface) => surface.id.includes('#'))).toBe(false)

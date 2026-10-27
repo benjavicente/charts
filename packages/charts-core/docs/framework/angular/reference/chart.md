@@ -4,15 +4,14 @@ description: Complete option and type reference for the @tanstack/charts/angular
 ---
 
 ```ts
-import { ChartComponent } from '@tanstack/charts/angular'
+import { Chart } from '@tanstack/charts/angular'
 ```
 
-`ChartComponent` is a standalone component with selector `div[tanstack-chart]`.
-The deprecated `Chart` retains selector `tanstack-chart`. Both are exported from
-the same entry. `ChartComponent` accepts `ChartComponentOptions`; the deprecated
-component retains `ChartOptions`. The required
-`options` input accepts a chart definition. Replace the definition identity
-when captured application values change.
+`Chart` is a standalone component with selector `div[tanstack-chart]`, available
+from Angular 20 onward. It accepts `ChartOptions` through the required signal
+input `options`. Replace the definition identity when captured application
+values change. The old `tanstack-chart` element selector has been removed;
+see the [adapter comparison and migration](../comparison.md).
 The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimation`,
 `keyboard`, `maxFocusDistance`, and `spatialIndex`.
 
@@ -44,7 +43,7 @@ input update. Chart accessibility options apply to the rendered SVG; native
 
 ## Outputs
 
-`ChartComponent` exposes four optional Angular outputs alongside the callbacks:
+`Chart` exposes four optional Angular outputs alongside the callbacks:
 
 | Output             | Payload                 | Callback counterpart         |
 | ------------------ | ----------------------- | ---------------------------- |
@@ -55,7 +54,7 @@ input update. Chart accessibility options apply to the rendered SVG; native
 
 If both forms are registered, the callback runs first and the output emits the
 same payload once. Value-producing callbacks such as `renderSvg` and tooltip
-formatters remain functions. The deprecated `Chart` has no new outputs.
+formatters remain functions.
 
 ## Tooltip body template
 
@@ -74,20 +73,23 @@ Project a typed tooltip template into the chart:
 ```
 
 Import `ChartTooltipBodyDirective` and Angular's `NgTemplateOutlet` beside
-`ChartComponent`. The context exposes `primaryPoint`, `points`, `content`, `defaultBody`, `pinned`, and
+`Chart`. The context exposes `primaryPoint`, `points`, `content`, `defaultBody`, `pinned`, and
 `dismiss`; named template bindings are also available. Binding the same
 definition gives Angular's strict template checker the datum and x/y value
-types. Ordering, anchoring, placement, portaling, and pinning remain in the
-definition.
+types through `ngTemplateContextGuard`. The directive declares that definition
+with `input.required()` and alias `tanstackChartTooltipBody`; the definition is
+only used for type inference. Access `directive.definition()` when reading a
+directive instance. Ordering, anchoring, placement, portaling, and pinning remain
+in the chart definition.
 
 ## Exported types
 
-`ChartComponentOptions` contains chart host options with `svgClass` for the
+`ChartOptions` contains chart host options with `svgClass` for the
 root SVG. Host classes and styles use native Angular bindings.
 
-The deprecated `Chart` retains `ChartCommonOptions`, `ChartOptions`, and
-`ChartPresentationOptions`, including `class` and the string `style` for its
-inner host, and `className` for its SVG surface.
+`ChartCommonOptions` contains the same options without `definition`.
+`ChartPresentationOptions` contains `svgClass`; host `class` and `style` use
+native Angular bindings.
 
 The package also exports `ChartTooltipBodyDirective`,
 `ChartTooltipBodyRenderContext`, and `ChartTooltipBodyTemplateContext`. It

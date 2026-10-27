@@ -11,7 +11,7 @@ import {
   provideServerRendering,
   renderApplication,
 } from '@angular/platform-server'
-import { ChartComponent } from '@tanstack/charts/angular'
+import { Chart } from '@tanstack/charts/angular'
 import { describe, expect, it } from 'vitest'
 import { createRevenueChart, revenueData } from './comparison-charts'
 
@@ -19,8 +19,7 @@ let browserMounts = 0
 
 @Component({
   selector: 'server-chart',
-  standalone: true,
-  imports: [ChartComponent],
+  imports: [Chart],
   template:
     '<div tanstack-chart id="server-revenue" [options]="options()"></div>',
 })
@@ -37,8 +36,7 @@ class ServerChart {
 
 @Component({
   selector: 'async-server-chart',
-  standalone: true,
-  imports: [ChartComponent],
+  imports: [Chart],
   template: '<div tanstack-chart [options]="options()"></div>',
 })
 class AsyncServerChart extends ServerChart {

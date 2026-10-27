@@ -1,7 +1,7 @@
 import { Component } from '@angular/core'
-import { ChartComponent } from './ChartComponent'
+import { Chart } from './Chart'
 import { ChartTooltipBodyDirective } from './ChartTooltipBody'
-import type { ChartComponentOptions } from './types'
+import type { ChartOptions } from './types'
 import type { ChartPoint, ChartRenderContext } from '@tanstack/charts'
 
 interface Datum {
@@ -11,8 +11,7 @@ interface Datum {
 }
 
 @Component({
-  standalone: true,
-  imports: [ChartComponent, ChartTooltipBodyDirective],
+  imports: [Chart, ChartTooltipBodyDirective],
   template: `
     <div
       tanstack-chart
@@ -37,7 +36,7 @@ interface Datum {
   `,
 })
 class TooltipTypeTest {
-  protected options!: ChartComponentOptions<Datum, number, number>
+  protected options!: ChartOptions<Datum, number, number>
   protected selectedId: string | undefined
   protected onRender(context: ChartRenderContext<Datum, number, number>) {
     context.scene.points[0]?.xValue.toFixed(2)
@@ -49,9 +48,7 @@ class TooltipTypeTest {
 void TooltipTypeTest
 
 // Host presentation belongs to native bindings, and SVG presentation has an explicit name.
-function checkPresentation(
-  options: ChartComponentOptions<Datum, number, number>,
-) {
+function checkPresentation(options: ChartOptions<Datum, number, number>) {
   options.svgClass = 'series-chart'
   // @ts-expect-error Host classes are native Angular bindings.
   options.class = 'host'

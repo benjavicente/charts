@@ -90,6 +90,10 @@
             {
               "label": "Angular Adapter",
               "to": "framework/angular/adapter"
+            },
+            {
+              "label": "Adapter comparison and migration",
+              "to": "framework/angular/comparison"
             }
           ]
         },

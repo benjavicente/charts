@@ -1,19 +1,19 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { NgTemplateOutlet } from '@angular/common'
-import { Chart, ChartTooltipBodyDirective } from '@tanstack/charts/angular'
+import { ChartTooltipBodyDirective } from '@tanstack/charts/angular'
+import { LegacyChart } from './LegacyChart'
 import { injectComparisonState } from './inject-comparison-state'
 import type { ComparisonCase, ComparisonOptions } from './comparison-charts'
 
 @Component({
   selector: 'original-example',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Chart, ChartTooltipBodyDirective, NgTemplateOutlet],
+  imports: [LegacyChart, ChartTooltipBodyDirective, NgTemplateOutlet],
   template: `
     <article class="chart-card" data-adapter="original">
       <header class="chart-card__header">
         <h3>Original adapter</h3>
-        <span class="chart-card__badge">Deprecated Chart</span>
+        <span class="chart-card__badge">Historical Chart</span>
       </header>
       <div
         class="chart-stage"

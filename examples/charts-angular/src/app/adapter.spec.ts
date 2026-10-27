@@ -16,11 +16,8 @@ import type {
   ChartPoint,
   ChartRenderContext,
 } from '@tanstack/charts'
-import {
-  ChartComponent,
-  ChartTooltipBodyDirective,
-} from '@tanstack/charts/angular'
-import type { ChartComponentOptions } from '@tanstack/charts/angular'
+import { Chart, ChartTooltipBodyDirective } from '@tanstack/charts/angular'
+import type { ChartOptions } from '@tanstack/charts/angular'
 
 const rows = [
   { id: 'a', x: 0, y: 2 },
@@ -37,7 +34,7 @@ const definition = defineChart({
 })
 let childDestroys = 0
 
-@Component({ selector: 'test-tooltip-child', standalone: true, template: '' })
+@Component({ selector: 'test-tooltip-child', template: '' })
 class TooltipChild {
   ngOnDestroy() {
     childDestroys++
@@ -45,8 +42,7 @@ class TooltipChild {
 }
 
 @Component({
-  standalone: true,
-  imports: [ChartComponent, ChartTooltipBodyDirective, TooltipChild],
+  imports: [Chart, ChartTooltipBodyDirective, TooltipChild],
   template: `
     <div
       tanstack-chart
@@ -97,7 +93,7 @@ class TooltipHost {
   focusEffectRuns = 0
   callbackLocales: string[] = []
   renderedHostWidths: string[] = []
-  readonly options = signal<ChartComponentOptions<Datum, number, number>>({
+  readonly options = signal<ChartOptions<Datum, number, number>>({
     definition,
     width: 480,
     height: 260,
@@ -127,19 +123,13 @@ class TooltipHost {
   focus(id: string, pinned = false) {
     const point = this.points().find((candidate) => candidate.datum.id === id)
     const controller = this.controller()
-    if (!point || !controller) throw new Error('ChartComponent has not mounted')
+    if (!point || !controller) throw new Error('Chart has not mounted')
     controller.setControlledFocus(point, { pinned })
   }
 }
 
 @Component({
-  standalone: true,
-  imports: [
-    ChartComponent,
-    ChartTooltipBodyDirective,
-    NgTemplateOutlet,
-    TooltipChild,
-  ],
+  imports: [Chart, ChartTooltipBodyDirective, NgTemplateOutlet, TooltipChild],
   template: `
     <div tanstack-chart [options]="options()">
       <ng-template
@@ -159,23 +149,20 @@ class TooltipHost {
 class PortaledTooltipHost extends TooltipHost {
   nestedRenders = 0
   nestedController?: ChartInteractionController<Datum, number, number>
-  readonly nestedOptions = signal<ChartComponentOptions<Datum, number, number>>(
-    {
-      definition: defineChart(definition, { tooltip: false }),
-      width: 120,
-      height: 80,
-      ariaLabel: 'Tooltip trend',
-      onRender: ({ interaction }) => {
-        this.nestedController = interaction
-        this.nestedRenders++
-      },
+  readonly nestedOptions = signal<ChartOptions<Datum, number, number>>({
+    definition: defineChart(definition, { tooltip: false }),
+    width: 120,
+    height: 80,
+    ariaLabel: 'Tooltip trend',
+    onRender: ({ interaction }) => {
+      this.nestedController = interaction
+      this.nestedRenders++
     },
-  )
+  })
 }
 
 @Component({
-  standalone: true,
-  imports: [ChartComponent],
+  imports: [Chart],
   template: `
     <div
       tanstack-chart
@@ -379,6 +366,29 @@ describe('signal Angular adapter', () => {
     expect(body.querySelector('svg')).toBe(nestedSvg)
     expect(host.nestedController).toBe(nestedController)
 
+    const structuredDefinition = host.options().definition
+    host.options.update((options) => ({
+      ...options,
+      definition: defineChart(definition, {
+        tooltip: { use: tooltip, portal, formatGroup: () => 'Plain revenue' },
+      }),
+    }))
+    await fixture.whenStable()
+    expect(body.textContent).toContain('Plain revenue')
+    expect(body.querySelector('.ts-chart-tooltip__title')).toBeNull()
+    expect(body.querySelector('.ts-chart-tooltip__row')).toBeNull()
+    expect(body.querySelector('svg')).toBe(nestedSvg)
+    host.options.update((options) => ({
+      ...options,
+      definition: structuredDefinition,
+    }))
+    await fixture.whenStable()
+    expect(
+      body.querySelector('.ts-chart-tooltip__title')?.textContent,
+    ).toContain('Point b')
+    expect(body.textContent).not.toContain('Plain revenue')
+    expect(body.querySelector('svg')).toBe(nestedSvg)
+
     host.nestedOptions.update((options) => ({
       ...options,
       ariaLabel: 'Updated tooltip trend',
@@ -567,8 +577,8 @@ describe('signal Angular adapter', () => {
   })
 
   it('can be destroyed before inputs, queries or the ownership effect run', () => {
-    TestBed.configureTestingModule({ imports: [ChartComponent] })
-    const fixture = TestBed.createComponent(ChartComponent)
+    TestBed.configureTestingModule({ imports: [Chart] })
+    const fixture = TestBed.createComponent(Chart)
     expect(() => fixture.destroy()).not.toThrow()
   })
 })
