@@ -94,12 +94,46 @@ still uses SVG as the default renderer for other marks and guides. The core
 composes the SVG and Canvas layers, owns interaction, and prerenders a Canvas
 shell on the server; the browser paints its pixels after mounting.
 
-Angular currently exposes the SVG-default component, without dedicated
-`/angular/canvas` or `/angular/core` entries. React and Octane additionally
-offer those renderer entry points for a full Canvas default or an
-application-supplied renderer. The other web adapters, including Angular,
-support Canvas through per-mark composition. `renderSvg` only replaces SVG
-serialization; it is not a replacement for a `ChartRenderer` option.
+## Canvas default
+
+Import the optional Canvas component when both marks and guides should use
+Canvas by default:
+
+```ts
+import { Chart as CanvasChart } from '@tanstack/charts/angular/canvas'
+import type { ChartOptions as CanvasChartOptions } from '@tanstack/charts/angular/canvas'
+```
+
+```html
+<div
+  tanstack-canvas-chart
+  class="revenue-chart"
+  [style.height.px]="240"
+  [options]="options()"
+  (rendered)="onRendered($event)"
+></div>
+```
+
+Add `CanvasChart` to the consuming component's `imports`. It uses the same chart
+definitions, native host styling, accessibility options, focus outputs and
+projected tooltip directive. Its `onRender` callback and `rendered` output
+receive `ChartRendererRenderContext`, with `surface`, `scene`, `container` and
+`interaction`; there is no promised `svg` field. The Canvas options omit
+`renderSvg` and select `canvasChartRenderer` internally.
+
+The distinct `div[tanstack-canvas-chart]` selector lets SVG and Canvas components
+coexist in the same template. Both use private `injectChartHost` and
+`injectChartTooltipBody` utilities for the same scheduling, resource ownership,
+notification boundaries and Angular tooltip lifecycle. Signal inputs, outputs
+and queries remain declarations on each component.
+
+The default Angular entry has no Canvas runtime import. The `/canvas` entry
+selects the optional renderer and re-exports the shared tooltip directive and
+types. There is no separate renderer-neutral Angular component or `/angular/core`
+entry. `renderSvg` on the SVG component replaces only SVG serialization.
+
+Canvas SSR emits an accessible shell rather than pixel data. Hydration retains
+its root and canvas elements, and the browser paints after mounting.
 
 ## Events and callbacks
 
@@ -166,7 +200,8 @@ definitions and data in a historical adapter snapshot and the current `Chart`,
 with the shared fixture stylesheet used by the other adapters. The historical
 implementation lives only in the example; it is not a package export. Its rows demonstrate tooltip primary-point freshness,
 callback tracking, native host identity and CSS sizing, and immutable updates
-with unmount/remount controls. Run the example's `test` script for compiled
+with unmount/remount controls. A separate Canvas-default example verifies
+Canvas-only hydration, events and projected Angular tooltips. Run the example's `test` script for compiled
 adapter regressions, then `build` and `test:browser` for the browser comparison.
 The production build prerenders the page in Node. The browser check pauses
 bootstrap to capture the server SVG and mark nodes, then verifies that hydration

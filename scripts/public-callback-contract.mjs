@@ -614,6 +614,7 @@ const callbackInventory = {
       'update contains destroy',
     ],
     ['@tanstack/angular-charts:src/Chart.ts:Chart', 'options'],
+    ['@tanstack/angular-charts:src/CanvasChart.ts:CanvasChart', 'options'],
     [
       '@tanstack/angular-charts:src/ChartTooltipBody.ts:ChartTooltipBodyDirective',
       'definition ngTemplateContextGuard',

@@ -16,7 +16,8 @@
     "README.md"
   ],
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./canvas": "./src/canvas.ts"
   },
   "dependencies": {
     "@tanstack/charts": "workspace:*",
@@ -43,6 +44,10 @@
       ".": {
         "types": "./dist/types/tanstack-angular-charts.d.ts",
         "default": "./dist/fesm2022/tanstack-angular-charts.mjs"
+      },
+      "./canvas": {
+        "types": "./dist/types/tanstack-angular-charts-canvas.d.ts",
+        "default": "./dist/fesm2022/tanstack-angular-charts-canvas.mjs"
       }
     }
   }

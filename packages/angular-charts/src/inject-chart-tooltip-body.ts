@@ -9,9 +9,10 @@ import type {
   ComponentRef,
   ViewContainerRef,
   WritableSignal,
+  Type,
 } from '@angular/core'
 import type { ChartTooltipBodyTarget, ChartValue } from '@tanstack/charts'
-import { ChartTooltipBodyComponent } from './ChartTooltipBodyComponent'
+import type { ChartTooltipBody } from './chart-tooltip-body'
 import type { ChartTooltipBodyDirective } from './ChartTooltipBody'
 
 export function injectChartTooltipBody<
@@ -22,10 +23,11 @@ export function injectChartTooltipBody<
   container: () => ViewContainerRef,
   directive: () =>
     ChartTooltipBodyDirective<TDatum, TXValue, TYValue> | undefined,
+  bodyComponent: Type<ChartTooltipBody<TDatum, TXValue, TYValue>>,
 ) {
   let body:
     | {
-        ref: ComponentRef<ChartTooltipBodyComponent<TDatum, TXValue, TYValue>>
+        ref: ComponentRef<ChartTooltipBody<TDatum, TXValue, TYValue>>
         target: WritableSignal<ChartTooltipBodyTarget<TDatum, TXValue, TYValue>>
       }
     | undefined
@@ -55,15 +57,12 @@ export function injectChartTooltipBody<
       }
       // Each body owns a non-null target signal for exactly its view lifetime.
       const currentTarget = signal(target)
-      const ref = container().createComponent(
-        ChartTooltipBodyComponent<TDatum, TXValue, TYValue>,
-        {
-          bindings: [
-            inputBinding('target', currentTarget),
-            inputBinding('template', () => directive()?.templateRef ?? null),
-          ],
-        },
-      )
+      const ref = container().createComponent(bodyComponent, {
+        bindings: [
+          inputBinding('target', currentTarget),
+          inputBinding('template', () => directive()?.templateRef ?? null),
+        ],
+      })
       target.element.append(ref.location.nativeElement)
       body = { ref, target: currentTarget }
     })

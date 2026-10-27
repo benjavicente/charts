@@ -15,6 +15,30 @@ see the [adapter comparison and migration](../comparison.md).
 The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimation`,
 `keyboard`, `maxFocusDistance`, and `spatialIndex`.
 
+## Renderer entry points
+
+```ts
+import { Chart } from '@tanstack/charts/angular'
+import { Chart as CanvasChart } from '@tanstack/charts/angular/canvas'
+```
+
+The default component uses `div[tanstack-chart]` and an SVG default renderer.
+The optional Canvas component uses `div[tanstack-canvas-chart]` and
+`canvasChartRenderer`. Both are standalone and accept required `options` signal
+inputs; they can coexist in one Angular template.
+
+The Canvas entry exports `Chart`, `ChartCommonOptions`, `ChartOptions`,
+`ChartPresentationOptions`, `ChartTooltipBodyDirective`,
+`ChartTooltipBodyRenderContext`, `ChartTooltipBodyTemplateContext`,
+`ChartDefinition`, and `ChartPoint`. The tooltip directive is the same declaration
+exported by the SVG entry.
+
+Canvas `ChartOptions` has the common options below except `renderSvg`.
+Its `onRender` and `rendered` payload is `ChartRendererRenderContext`, exposing
+`surface`, `scene`, `container` and `interaction` without an `svg` property.
+The component selects its renderer; there is no `renderer` option.
+See [Canvas default](../adapter.md#canvas-default) for rendering and SSR behavior.
+
 ## `options`
 
 | Option               | Type                                         | Default               | Meaning                                                             |
@@ -52,6 +76,9 @@ input update. Chart accessibility options apply to the rendered surface; native
 | `focusGroupChange` | `readonly ChartPoint[]` | `options.onFocusGroupChange` |
 | `pointSelect`      | `ChartPoint \| null`    | `options.onSelect`           |
 
+The Canvas component exposes the same four outputs, with the generic
+`ChartRendererRenderContext` payload for `rendered`.
+
 If both forms are registered, the callback runs first and the output emits the
 same payload once. Value-producing callbacks such as `renderSvg` and tooltip
 formatters remain functions.
@@ -80,7 +107,8 @@ types through `ngTemplateContextGuard`. The directive declares that definition
 with `input.required()` and alias `tanstackChartTooltipBody`; the definition is
 only used for type inference. Access `directive.definition()` when reading a
 directive instance. Ordering, anchoring, placement, portaling, and pinning remain
-in the chart definition.
+in the chart definition. The same projection works inside
+`<div tanstack-canvas-chart>`.
 
 ## Exported types
 

@@ -17,6 +17,7 @@ import type {
   ChartRenderContext,
 } from '@tanstack/charts'
 import { Chart, ChartTooltipBodyDirective } from '@tanstack/charts/angular'
+import { Chart as CanvasChart } from '@tanstack/charts/angular/canvas'
 import type { ChartOptions } from '@tanstack/charts/angular'
 
 const rows = [
@@ -583,5 +584,9 @@ describe('signal Angular adapter', () => {
     TestBed.configureTestingModule({ imports: [Chart] })
     const fixture = TestBed.createComponent(Chart)
     expect(() => fixture.destroy()).not.toThrow()
+    TestBed.resetTestingModule()
+    TestBed.configureTestingModule({ imports: [CanvasChart] })
+    const canvas = TestBed.createComponent(CanvasChart)
+    expect(() => canvas.destroy()).not.toThrow()
   })
 })

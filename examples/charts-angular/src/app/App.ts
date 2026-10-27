@@ -6,6 +6,7 @@ import {
 } from '@angular/core'
 import { OriginalExample } from './OriginalExample'
 import { SignalExample } from './SignalExample'
+import { CanvasExample } from './CanvasExample'
 import {
   comparisonCases,
   createRevenueChart,
@@ -16,7 +17,7 @@ import type { ComparisonCase } from './comparison-charts'
 @Component({
   selector: 'charts-angular-app',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [OriginalExample, SignalExample],
+  imports: [OriginalExample, SignalExample, CanvasExample],
   templateUrl: './App.html',
 })
 export class App {
