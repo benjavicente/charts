@@ -1,5 +1,4 @@
-import { NgTemplateOutlet } from '@angular/common'
-import { ChangeDetectionStrategy, Component, input } from '@angular/core'
+import { Directive, input } from '@angular/core'
 import type { TemplateRef } from '@angular/core'
 import type {
   ChartTooltipBodyTarget,
@@ -8,12 +7,7 @@ import type {
 } from '@tanstack/charts'
 import type { ChartTooltipBodyTemplateContext } from './types'
 
-@Component({
-  selector: 'div[tanstack-chart-tooltip-body]',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgTemplateOutlet],
-  host: { style: 'display: contents' },
-  template: `
+export const chartTooltipBodyTemplate = `
     <ng-template #defaultBody>
       @let content = target().content;
       @if (isText(content)) {
@@ -91,9 +85,10 @@ import type { ChartTooltipBodyTemplateContext } from './types'
         [ngTemplateOutletContext]="context(defaultBody)"
       />
     }
-  `,
-})
-export class ChartTooltipBodyComponent<
+  `
+
+@Directive()
+export abstract class ChartTooltipBody<
   TDatum = unknown,
   TXValue extends ChartValue = ChartValue,
   TYValue extends ChartValue = ChartValue,

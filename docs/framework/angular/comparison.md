@@ -6,7 +6,8 @@ description: Compare the old Angular adapter with the native-host, signal-based 
 The Angular 20 adapter replaces the old `Chart` implementation. The public
 component and options are still named `Chart` and `ChartOptions`, imported from
 `@tanstack/charts/angular`. The old element selector is removed in this major
-release. There is one public chart component.
+release. The SVG entry exports `Chart`; an optional `/angular/canvas` entry
+exports a Canvas-default `Chart` with the same Angular host integration.
 
 ## What changes
 
@@ -34,6 +35,12 @@ responsive layout and interaction core. The new adapter targets zoneless apps;
 configure `provideZonelessChangeDetection()` on Angular 20. Angular 21 and later
 use zoneless change detection by default. Components and directives rely on
 [Angular's standalone default](https://angular.dev/api/core/Directive#standalone); `OnPush` remains explicit.
+
+The optional [Canvas-default component](./adapter.md#canvas-default) adds
+`div[tanstack-canvas-chart]`. SVG and Canvas components share private injection
+utilities for host lifecycle and tooltip projection, while keeping their
+renderer-specific input and event types. The existing per-mark Canvas
+composition remains supported in the SVG component.
 
 ## Before and after
 
@@ -169,3 +176,7 @@ Canvas pixels, surface class ownership, switching renderers and unmount cleanup.
 The production example prerenders in Node; its browser check pauses bootstrap,
 captures server SVG and mark nodes, and verifies that hydration and subsequent
 updates retain those exact nodes.
+
+The fifth example uses the Canvas-default component with no SVG surface. It
+checks Canvas shell hydration, callback/output payload identity, untracked
+focus operations, immutable updates, typed tooltip projection and cleanup.

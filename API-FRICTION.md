@@ -5,7 +5,7 @@ observed difficulty from examples, production migrations, tests, and agent
 evaluations so later API, documentation, and TanStack Intent skill work is
 based on evidence.
 
-Last updated: 2026-10-10
+Last updated: 2026-10-27
 
 ## Triage rule
 
@@ -360,6 +360,7 @@ Each entry records:
 | F-320 | Global pnpm migrated the workspace before dependency validation | Tooling | resolved |
 | F-321 | Angular signal queries reject ECMAScript private fields | Tooling | resolved |
 | F-322 | Angular Canvas mark support was undocumented | Documentation | resolved |
+| F-323 | Angular secondary entries crossed APF compilation boundaries | Tooling | resolved |
 
 ## Findings
 
@@ -9478,7 +9479,8 @@ Each entry records:
   its context guard. Direct validation after removing the legacy component
   covers all 814 published callback surfaces with zero issues. The full test
   suite's earlier 30-second setup hook timed out on this machine; direct inventory
-  validation completes without that hook limit.
+  validation completes without that hook limit. The Canvas host adds one
+  classified options input; all 815 published callable surfaces validate.
 
 ### F-319 - Angular dynamic component inputs required one update protocol
 
@@ -9570,3 +9572,42 @@ Each entry records:
   shell with `className` on the layered root and no browser mount. Chromium
   verifies painted Canvas pixels in both comparison adapters, SVG guides,
   surface class ownership, renderer switching, remount and Canvas node cleanup.
+  Follow-up: the optional `/angular/canvas` entry now supplies a Canvas-default
+  component. The two native host components share private host and projection
+  utilities while retaining their renderer-specific input and event types.
+  Dedicated custom-renderer components remain a separate API from this addition.
+
+
+### F-323 - Angular secondary entries crossed APF compilation boundaries
+
+- Status: resolved
+- Severity: medium
+- Owner: Tooling
+- Observed in: adding the Angular Canvas entry with shared injection utilities
+- Friction: an entry barrel inside the canvas folder made ng-packagr reject
+  shared sources outside that entry's compiler root. Its output also retained
+  a self-package import and a nested APF proxy manifest that cannot be copied
+  unchanged into the unified package. Importing both emitted entries under
+  Angular 20 exposed NG0912: each bundle inlined the same private tooltip component.
+  A spread-only component metadata object also hid its template from the compiler
+  (NG2001), despite containing the shared template value.
+- Decision: place the Canvas barrel in the shared src root and point its
+  secondary configuration there. Finalize emitted imports as relative sibling
+  paths and remove the redundant proxy manifest before packing. Keep the public
+  tooltip directive shared through the primary entry. Give each renderer a
+  private tooltip component identity, sharing the template and signal-input
+  base; pass that component type into the shared projection utility and reference
+  the template constant explicitly in each component decorator. Use
+  renderer ID namespaces because private utility services can also be inlined
+  separately. The package gate now imports both emitted entries together,
+  checks public selectors and directive identity, and rejects NG0912 warnings.
+- Verification: both partial Angular entries build; the emitted-entry smoke test
+  passes without duplicate component IDs or a legacy package import. All twelve
+  compiled Angular tests pass. The browser verifies Canvas-only hydration,
+  painting, callback/output payloads, untracked focus, tooltip template changes,
+  immutable updates and cleanup alongside the existing SVG regressions.
+  An Angular 20.0.0 consumer strictly compiles both unified entry declarations,
+  links the built artifacts, exercises SVG browser tooltip lifecycle, and
+  renders SVG and Canvas in Node with shared directive identity and no NG0912.
+  The Angular 20 template checker also rejects an invalid Canvas tooltip datum
+  field, confirming that projection preserves its inferred datum type.

@@ -229,7 +229,8 @@
     "./violin": "./src/violin.ts",
     "./view": "./src/view.ts",
     "./vue": "./src/vue.ts",
-    "./waffle": "./src/waffle.ts"
+    "./waffle": "./src/waffle.ts",
+    "./angular/canvas": "./src/angular-canvas.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -710,6 +711,10 @@
       "./waffle": {
         "types": "./dist/waffle.d.ts",
         "import": "./dist/waffle.js"
+      },
+      "./angular/canvas": {
+        "types": "./dist/angular/types/tanstack-angular-charts-canvas.d.ts",
+        "default": "./dist/angular/fesm2022/tanstack-angular-charts-canvas.mjs"
       }
     }
   }

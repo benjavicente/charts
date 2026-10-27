@@ -12,6 +12,7 @@ import {
   renderApplication,
 } from '@angular/platform-server'
 import { Chart } from '@tanstack/charts/angular'
+import { Chart as CanvasChart } from '@tanstack/charts/angular/canvas'
 import { describe, expect, it } from 'vitest'
 import { createRevenueChart, revenueData } from './comparison-charts'
 
@@ -70,7 +71,59 @@ class HybridServerChart extends ServerChart {
   }
 }
 
+@Component({
+  selector: 'canvas-server-chart',
+  imports: [CanvasChart],
+  template:
+    '<div tanstack-canvas-chart id="canvas-server" [options]="options()"></div>',
+})
+class CanvasServerChart extends ServerChart {
+  constructor() {
+    super()
+    const complete = inject(PendingTasks).add()
+    setTimeout(() => {
+      this.options.update((options) => ({
+        ...options,
+        height: 180,
+        className: 'canvas-server-surface',
+        ariaLabel: 'Final Canvas revenue',
+      }))
+      complete()
+    }, 0)
+  }
+}
+
 describe('signal Angular SSR', () => {
+  it('serializes the latest Canvas-only shell without mounting or requiring SVG', async () => {
+    browserMounts = 0
+    destroyPlatform()
+    const html = await renderApplication(
+      (context) =>
+        bootstrapApplication(
+          CanvasServerChart,
+          {
+            providers: [
+              provideZonelessChangeDetection(),
+              provideServerRendering(),
+            ],
+          },
+          context,
+        ),
+      {
+        document:
+          '<!doctype html><html><body><canvas-server-chart></canvas-server-chart></body></html>',
+      },
+    )
+    expect(browserMounts).toBe(0)
+    expect(html).not.toContain('<svg')
+    expect(html).toContain(
+      'class="ts-chart ts-chart-canvas canvas-server-surface"',
+    )
+    expect(html).toContain('aria-label="Final Canvas revenue"')
+    expect(html).toContain('data-ts-chart-height="180"')
+    expect(html).toContain('ts-chart-canvas__scene')
+  })
+
   it('prerenders Canvas marks with className on the layered surface', async () => {
     browserMounts = 0
     destroyPlatform()

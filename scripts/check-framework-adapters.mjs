@@ -18,6 +18,10 @@ import { build as viteBuild } from 'vite'
 import solid from 'vite-plugin-solid'
 import { validatePackedMarkdownLinks } from './packed-markdown-links.mjs'
 import { runWithConcurrency } from './run-with-concurrency.mjs'
+import {
+  finalizeAngularPackage,
+  verifyAngularPackage,
+} from './angular-package.mjs'
 
 const execFileAsync = promisify(execFile)
 const root = resolve(import.meta.dirname, '..')
@@ -166,6 +170,7 @@ async function buildAngularPackage() {
     ],
     root,
   )
+  await finalizeAngularPackage(resolve(root, 'packages/angular-charts'))
 }
 
 async function buildDeclarations(packageRoot) {
@@ -254,7 +259,11 @@ async function verifyPackage(directory) {
   }
   await verifyPackedMarkdownLinks(packageRoot, manifest.name, files)
 
-  if (directory === 'svelte-charts' || directory === 'angular-charts') return
+  if (directory === 'angular-charts') {
+    await verifyAngularPackage(packageRoot)
+    return
+  }
+  if (directory === 'svelte-charts') return
   const entry = manifest.publishConfig.exports['.'].import
   await esbuild({
     entryPoints: [resolve(packageRoot, entry)],

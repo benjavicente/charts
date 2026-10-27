@@ -10,7 +10,13 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "preserve",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "paths": {
+      "@tanstack/charts/angular/canvas": [
+        "../../packages/charts-core/src/angular-canvas.ts"
+      ],
+      "@tanstack/angular-charts": ["../../packages/angular-charts/src/index.ts"]
+    }
   },
   "angularCompilerOptions": {
     "strictInjectionParameters": true,

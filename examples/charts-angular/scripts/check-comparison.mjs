@@ -54,6 +54,13 @@ try {
       ].map((svg) => ({ svg, mark: svg.querySelector('.ts-chart__line path') }))
     })
     assert.equal(await page.evaluate(() => window.serverCharts.length), 4)
+    await page.evaluate(() => {
+      const root = document.querySelector('[data-canvas-demo] .ts-chart-canvas')
+      window.serverCanvas = {
+        root,
+        canvases: [...root.querySelectorAll('canvas')],
+      }
+    })
   } finally {
     client.resolve()
   }
@@ -226,7 +233,7 @@ try {
   await page.waitForFunction(
     () => document.querySelectorAll('svg').length === 6,
   )
-  assert.equal(await page.locator('canvas').count(), 0)
+  assert.equal(await lifetime.locator('canvas').count(), 0)
   assert.equal(
     await page.evaluate(() => window.comparisonCanvasSurface.isConnected),
     false,
@@ -237,13 +244,144 @@ try {
   await page.waitForFunction(
     () => document.querySelectorAll('svg').length === 8,
   )
-  assert.equal(await page.locator('canvas').count(), 0)
+  assert.equal(await lifetime.locator('canvas').count(), 0)
   assert.equal(
     await lifetime
       .locator('[data-adapter="signal"] svg.revenue-surface')
       .count(),
     1,
   )
+  const canvasDemo = page.locator('[data-canvas-demo]')
+  const canvasHost = canvasDemo.locator('[tanstack-canvas-chart]')
+  const canvasRoot = canvasDemo.locator('.ts-chart-canvas')
+  await page.waitForFunction(() => {
+    const canvas = document.querySelector(
+      '[data-canvas-demo] .ts-chart-canvas__scene',
+    )
+    const data = canvas
+      .getContext('2d')
+      .getImageData(0, 0, canvas.width, canvas.height).data
+    return data.some((value, index) => index % 4 === 3 && value > 0)
+  })
+  assert.equal(await canvasDemo.locator('svg').count(), 0)
+  assert.equal(
+    await canvasHost.evaluate((element) =>
+      element.classList.contains('canvas-surface'),
+    ),
+    false,
+  )
+  assert.equal(
+    await canvasRoot.evaluate((element) =>
+      element.classList.contains('canvas-surface'),
+    ),
+    true,
+  )
+  assert.equal(
+    await page.evaluate(() => {
+      const { root, canvases } = window.serverCanvas
+      return (
+        root.isConnected &&
+        canvases.every((canvas) => canvas.isConnected && root.contains(canvas))
+      )
+    }),
+    true,
+    'Canvas hydration must retain the server root and canvas nodes',
+  )
+  await canvasDemo
+    .getByRole('button', { name: 'Focus Canvas February' })
+    .click()
+  const canvasTooltip = page.locator('[data-canvas-tooltip]')
+  await canvasTooltip.locator('[data-canvas-primary]').waitFor()
+  assert.equal(
+    await canvasTooltip.locator('[data-canvas-primary]').textContent(),
+    'February',
+  )
+  const effectRuns = await canvasDemo
+    .locator('[data-canvas-effect]')
+    .textContent()
+  await canvasDemo
+    .getByRole('button', { name: 'Change Canvas log format' })
+    .click()
+  assert.equal(
+    await canvasDemo.locator('[data-canvas-effect]').textContent(),
+    effectRuns,
+  )
+  const point = await canvasDemo
+    .locator('[data-canvas-point]')
+    .evaluate((element) => ({
+      x: Number(element.dataset.x),
+      y: Number(element.dataset.y),
+    }))
+  await canvasRoot.click({ position: point })
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('[data-canvas-point]')
+        ?.getAttribute('data-selected') === 'b',
+  )
+  assert.equal(
+    await canvasDemo
+      .locator('[data-canvas-point]')
+      .getAttribute('data-selected'),
+    'b',
+  )
+  assert.ok(
+    Number(
+      await canvasDemo
+        .locator('[data-canvas-point]')
+        .getAttribute('data-group'),
+    ) > 0,
+  )
+  assert.equal(
+    await canvasDemo.locator('[data-canvas-events]').textContent(),
+    'true',
+  )
+  await canvasDemo.getByRole('button', { name: 'Update Canvas data' }).click()
+  await page.waitForSelector(
+    '[data-canvas-demo] .ts-chart-canvas[aria-label="Updated Canvas revenue"]',
+  )
+  await page.waitForFunction(
+    (previousY) =>
+      Number(
+        document.querySelector('[data-canvas-point]')?.getAttribute('data-y'),
+      ) !== previousY,
+    point.y,
+  )
+  assert.equal(
+    await page.evaluate(() => {
+      const { root, canvases } = window.serverCanvas
+      return (
+        root.isConnected &&
+        canvases.every((canvas) => canvas.isConnected && root.contains(canvas))
+      )
+    }),
+    true,
+  )
+  await canvasDemo
+    .getByRole('button', { name: 'Toggle Canvas template' })
+    .click()
+  await canvasTooltip.waitFor({ state: 'detached' })
+  await canvasDemo
+    .getByRole('button', { name: 'Toggle Canvas template' })
+    .click()
+  await canvasDemo
+    .getByRole('button', { name: 'Focus Canvas February' })
+    .click()
+  await canvasTooltip.waitFor()
+  await canvasTooltip
+    .getByRole('button', { name: 'Dismiss Canvas tooltip' })
+    .click()
+  await canvasTooltip.waitFor({ state: 'detached' })
+  await canvasDemo.getByRole('button', { name: 'Unmount Canvas' }).click()
+  await canvasHost.waitFor({ state: 'detached' })
+  assert.equal(await canvasDemo.locator('canvas').count(), 0)
+  assert.equal(
+    await page.evaluate(() => window.serverCanvas.root.isConnected),
+    false,
+  )
+  await canvasDemo.getByRole('button', { name: 'Remount Canvas' }).click()
+  await canvasRoot.waitFor()
+  assert.equal(await canvasDemo.locator('svg').count(), 0)
   await page.getByRole('button', { name: 'Dark theme' }).click()
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark')
   await page.setViewportSize({ width: 390, height: 844 })
@@ -252,7 +390,7 @@ try {
   )
   assert.deepEqual(errors, [])
   console.log(
-    'Angular comparison passed: SSR hydration, both legacy bugs, native host styling, className on SVG and Canvas layers, Canvas painting and cleanup, updates, remount, themes and mobile layout.',
+    'Angular comparison passed: SSR hydration, both legacy bugs, native host styling, className on SVG and Canvas layers, Canvas-only hydration, events, tooltips and cleanup, Canvas painting, updates, remount, themes and mobile layout.',
   )
 } finally {
   await browser.close()

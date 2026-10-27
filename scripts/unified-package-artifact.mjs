@@ -384,6 +384,7 @@ async function verifyUnifiedBundles(fixtureRoot) {
       ['svelte', 'import', 'default'],
     ],
     ['Angular adapter', '@tanstack/charts/angular'],
+    ['Angular canvas adapter', '@tanstack/charts/angular/canvas'],
     ['Lit adapter', '@tanstack/charts/lit'],
     ['Alpine adapter', '@tanstack/charts/alpine'],
   ]
