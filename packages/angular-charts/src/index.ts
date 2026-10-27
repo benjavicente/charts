@@ -1,9 +1,7 @@
 export { Chart } from './Chart'
-export { ChartComponent } from './ChartComponent'
 export { ChartTooltipBodyDirective } from './ChartTooltipBody'
 export type {
   ChartCommonOptions,
-  ChartComponentOptions,
   ChartOptions,
   ChartPresentationOptions,
   ChartTooltipBodyRenderContext,

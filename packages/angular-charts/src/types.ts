@@ -7,8 +7,8 @@ import type {
 } from '@tanstack/charts'
 
 export interface ChartPresentationOptions {
-  class?: string
-  style?: string
+  /** Extra class on the rendered root SVG. Bind host classes/styles in the template. */
+  svgClass?: string
 }
 
 export interface ChartTooltipBodyRenderContext<
@@ -31,20 +31,12 @@ export type ChartCommonOptions<
   TDatum = unknown,
   TXValue extends ChartValue = ChartValue,
   TYValue extends ChartValue = ChartValue,
-> = ChartHostCommonOptions<TDatum, TXValue, TYValue> & ChartPresentationOptions
+> = Omit<ChartHostCommonOptions<TDatum, TXValue, TYValue>, 'className'> &
+  ChartPresentationOptions
 
 export type ChartOptions<
   TDatum = unknown,
   TXValue extends ChartValue = ChartValue,
   TYValue extends ChartValue = ChartValue,
-> = ChartHostOptions<TDatum, TXValue, TYValue> & ChartPresentationOptions
-
-/** Options for the native-host, signal-first component. Bind host classes/styles in the template. */
-export type ChartComponentOptions<
-  TDatum = unknown,
-  TXValue extends ChartValue = ChartValue,
-  TYValue extends ChartValue = ChartValue,
-> = Omit<ChartHostOptions<TDatum, TXValue, TYValue>, 'className'> & {
-  /** Extra class on the rendered root SVG. */
-  svgClass?: string
-}
+> = Omit<ChartHostOptions<TDatum, TXValue, TYValue>, 'className'> &
+  ChartPresentationOptions

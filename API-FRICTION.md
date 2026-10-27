@@ -9383,9 +9383,10 @@ Each entry records:
 - Friction: calling the original controller's `setControlledFocus` inside an
   effect tracks the logging-format signal read by its synchronous callback.
   Changing the format reruns the focus effect without changing the requested point.
-- Decision: `ChartComponent` in the existing Angular entry exposes stable untracked
-  controller operations and invokes consumer callbacks untracked. Deprecated
-  `Chart` preserves its original behavior.
+- Decision: the signal-based `Chart` in the existing Angular entry exposes
+  stable untracked controller operations and invokes consumer callbacks untracked.
+  With the major-version migration, remove the old implementation from the
+  package; retain it only as an example-local historical comparison fixture.
 - Verification: compiled tests keep the effect count stable when the callback's
   locale changes. Chromium reproduces the original count changing from one to
   two while the new adapter stays at one after a logging-format change.
@@ -9402,11 +9403,15 @@ Each entry records:
 - Friction: attributes and Angular class/style bindings target `tanstack-chart`,
   while its inner `.ts-chart-host` owns layout. A compound selector misses the
   inner host, and a native 180px binding leaves the rendered scene at 320px.
-- Decision: export `ChartComponent` with `div[tanstack-chart]` from the existing
-  Angular entry so one native element owns identity and layout. Deprecate `Chart`
-  and retain it for compatibility and comparison. Keep its presentation options
-  and the tooltip directive's value-shaped definition property. The new component
-  uses native class/style bindings and explicit `svgClass` for the root SVG.
+- Decision: replace `Chart` with the signal-based `div[tanstack-chart]`
+  implementation in the existing Angular entry so one native element owns
+  identity and layout. Keep the `Chart` and `ChartOptions` names in this major
+  migration, use native class/style bindings, and name the SVG class `svgClass`.
+  Keep the historical implementation only in the comparison example. The tooltip
+  definition binding still supplies template generic inference, but preserving
+  its value-shaped instance property no longer justifies a decorator: use a
+  required signal input with the same `tanstackChartTooltipBody` alias. Rely on
+  the Angular 19+ standalone default throughout the Angular adapter and example.
   Static positioning belongs directly on the host; numeric dimension bindings
   use Angular's px units without CSS string conversion. A generic width binding
   set to null overrode the pixel binding during the refactor; a static responsive
@@ -9415,6 +9420,11 @@ Each entry records:
   SVG class targeting, native binding precedence, fixed dimensions, aspect ratio,
   fallback sizing, SSR updates and hydration. Chromium matches the new compound
   selector and measures 176px of chart content inside the 180px bordered host.
+  After the major migration, all ten compiled tests and the Chromium comparison
+  pass with only `Chart` exported. Strict Angular 20.0.0 compilation rejects an
+  invalid tooltip datum property and a definition binding of the wrong type,
+  confirming signal-input generic inference; valid templates and instance types
+  compile on Angular 20 and 22 without explicit standalone flags.
 
 ### F-317 - Signal Angular workspace sources bypassed the test compiler
 
@@ -9440,20 +9450,25 @@ Each entry records:
   Node prerendering and hydration in separate server and Chromium runtimes.
   The browser check captures the server nodes before bootstrap and verifies
   their identities through hydration and immutable updates.
+  Removing the old public Chart also removes its source-JIT tests and Vite SSR
+  subprocess fixture. The compiled suite now owns that behavior, including the
+  plain-text/structured default-body transition and nested portaled chart cleanup.
 
 ### F-318 - Callback inventory treated JavaScript private methods as public
 
 - Status: resolved
 - Severity: low
 - Owner: Tooling
-- Observed in: ChartComponent's encapsulated controller helpers
+- Observed in: the signal-based Chart's encapsulated controller helpers
 - Friction: the callback inventory recognized TypeScript private modifiers but
   classified JavaScript `#private` methods as published callbacks.
 - Decision: exclude PrivateIdentifier declarations at the visibility boundary;
   classify signal inputs and the directive's template guard as service methods.
-- Verification: the inventory regression exposes only the ChartComponent options input
-  and direct validation of all 816 published callback surfaces passes. The full
-  test suite's 30-second setup hook times out on this machine; direct inventory
+- Verification: the inventory regression exposes only the Chart options input;
+  classify the tooltip directive's definition signal as a service input alongside
+  its context guard. Direct validation after removing the legacy component
+  covers all 814 published callback surfaces with zero issues. The full test
+  suite's earlier 30-second setup hook timed out on this machine; direct inventory
   validation completes without that hook limit.
 
 ### F-319 - Angular dynamic component inputs required one update protocol

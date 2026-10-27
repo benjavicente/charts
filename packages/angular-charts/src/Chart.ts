@@ -2,383 +2,230 @@ import {
   APP_ID,
   ChangeDetectionStrategy,
   Component,
-  ContentChild,
   ElementRef,
   Injectable,
-  Input,
+  PLATFORM_ID,
   Renderer2,
-  TemplateRef,
-  ViewChild,
   ViewContainerRef,
   ViewEncapsulation,
   afterNextRender,
+  afterRenderEffect,
+  computed,
+  contentChild,
+  effect,
   inject,
-} from '@angular/core'
-import type {
-  EmbeddedViewRef,
-  AfterViewInit,
-  OnChanges,
-  OnDestroy,
-  SimpleChanges,
+  input,
+  output,
+  untracked,
+  viewChild,
 } from '@angular/core'
 import { resolveChartAdapterLayout } from '@tanstack/charts/adapter'
-import { createChartRendererAdapter } from '@tanstack/charts/adapter/renderer'
+import { injectChartRendererAdapter } from './inject-chart-renderer-adapter'
 import { renderChartSvg } from '@tanstack/charts/svg'
 import { createSvgChartRenderer } from '@tanstack/charts/svg/renderer'
 import type {
-  ChartAdapter,
-  ChartRenderer,
+  ChartInteractionController,
+  ChartPoint,
+  ChartRenderContext,
   ChartRendererHostOptions,
   ChartRendererRenderContext,
-  ChartSvgRenderer,
-  ChartTooltipBodyTarget,
-  ChartTooltipContent,
   ChartValue,
 } from '@tanstack/charts'
 import { ChartTooltipBodyDirective } from './ChartTooltipBody'
-import type { ChartOptions, ChartTooltipBodyTemplateContext } from './types'
+import { injectChartTooltipBody } from './inject-chart-tooltip-body'
+import type { ChartOptions } from './types'
 
 @Injectable({ providedIn: 'root' })
 class ChartIdGenerator {
-  private readonly appId = inject(APP_ID)
-  private nextId = 0
+  readonly #appId = inject(APP_ID)
+  #nextId = 0
 
   next() {
-    return `ts-chart-${this.appId}-${++this.nextId}`.replaceAll(
-      /[^a-zA-Z0-9_-]/g,
-      '',
-    )
+    return (
+      'ts-chart-component-' +
+      this.#appId +
+      '-' +
+      ++this.#nextId
+    ).replaceAll(/[^a-zA-Z0-9_-]/g, '')
   }
 }
 
-/** @deprecated Use ChartComponent with a native div[tanstack-chart] host. */
 @Component({
-  selector: 'tanstack-chart',
-  standalone: true,
+  selector: 'div[tanstack-chart]',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
+  host: {
+    class: 'ts-chart-host',
+    style: 'position: relative; width: 100%',
+    '[style.width.px]': 'options().width',
+    '[style.height.px]': 'hostHeight()',
+    '[style.aspect-ratio]':
+      'options().height === undefined ? layout().aspectRatio : null',
+  },
   template: `
-    <div [class]="hostClass" [style]="hostStyle">
-      <div
-        #surface
-        class="ts-chart-surface"
-        style="width: 100%; height: 100%"
-      ></div>
-    </div>
-    <ng-container #tooltipOutlet></ng-container>
+    <div
+      #surface
+      class="ts-chart-surface"
+      style="width: 100%; height: 100%"
+    ></div>
+    <ng-template #tooltipOutlet />
     <ng-content select="ng-template[tanstackChartTooltipBody]" />
-    <ng-template #defaultTooltipBody>
-      @if (defaultTooltipContent; as content) {
-        @if (content.title) {
-          <div
-            class="ts-chart-tooltip__title"
-            style="display:flex;align-items:center;gap:0.4rem;font-weight:650"
-            [style.margin-bottom]="content.rows.length ? '0.3rem' : '0'"
-          >
-            @if (content.color) {
-              <span
-                class="ts-chart-tooltip__swatch"
-                aria-hidden="true"
-                style="display:block;width:0.55rem;height:0.55rem;border-radius:0.15rem;box-shadow:inset 0 0 0 1px rgb(0 0 0/.12)"
-                [style.background]="content.color"
-              ></span>
-            }
-            {{ content.title }}
-          </div>
-        }
-        @if (content.rows.length) {
-          <div class="ts-chart-tooltip__rows" aria-hidden="true">
-            @for (row of content.rows; track $index) {
-              <div
-                class="ts-chart-tooltip__row"
-                [attr.data-active]="row.active === true"
-                [style.fontWeight]="
-                  row.active
-                    ? 'var(--ts-chart-tooltip-active-row-font-weight, 700)'
-                    : null
-                "
-                [style.background]="
-                  row.active
-                    ? 'var(--ts-chart-tooltip-active-row-background, color-mix(in srgb, currentColor 12%, transparent))'
-                    : null
-                "
-                [style.borderRadius]="
-                  row.active
-                    ? 'var(--ts-chart-tooltip-active-row-border-radius, .2rem)'
-                    : null
-                "
-                [style.boxShadow]="
-                  row.active
-                    ? 'var(--ts-chart-tooltip-active-row-shadow, 0 0 0 2px color-mix(in srgb, currentColor 12%, transparent))'
-                    : null
-                "
-                style="display:grid;grid-template-columns:0.55rem minmax(0,1fr) auto;align-items:center;column-gap:0.4rem"
-              >
-                @if (row.color) {
-                  <span
-                    class="ts-chart-tooltip__swatch"
-                    aria-hidden="true"
-                    style="display:block;width:0.55rem;height:0.55rem;border-radius:0.15rem;box-shadow:inset 0 0 0 1px rgb(0 0 0/.12)"
-                    [style.background]="row.color"
-                  ></span>
-                } @else {
-                  <span></span>
-                }
-                <span>{{ row.label }}</span>
-                <span
-                  style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap"
-                  >{{ row.value }}</span
-                >
-              </div>
-            }
-          </div>
-        }
-      } @else if (defaultTooltipText !== undefined) {
-        {{ defaultTooltipText }}
-      }
-    </ng-template>
   `,
 })
 export class Chart<
   TDatum = unknown,
   TXValue extends ChartValue = ChartValue,
   TYValue extends ChartValue = ChartValue,
->
-  implements AfterViewInit, OnChanges, OnDestroy
-{
-  @Input({ required: true })
-  declare options: ChartOptions<TDatum, TXValue, TYValue>
+> {
+  readonly options = input.required<ChartOptions<TDatum, TXValue, TYValue>>()
 
-  @ViewChild('surface', { static: true })
-  declare private surface: ElementRef<HTMLElement>
+  readonly rendered = output<ChartRenderContext<TDatum, TXValue, TYValue>>()
+  readonly focusChange = output<ChartPoint<TDatum, TXValue, TYValue> | null>()
+  readonly focusGroupChange =
+    output<readonly ChartPoint<TDatum, TXValue, TYValue>[]>()
+  readonly pointSelect = output<ChartPoint<TDatum, TXValue, TYValue> | null>()
 
-  @ViewChild('tooltipOutlet', { read: ViewContainerRef, static: true })
-  declare private tooltipOutlet: ViewContainerRef
+  // The optional query lets the server effect wait for template creation.
+  // Browser DOM work also waits until the query is available after rendering.
+  protected readonly surface = viewChild<ElementRef<HTMLElement>>('surface')
+  protected readonly tooltipBodyDirective = contentChild<
+    ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
+  >(ChartTooltipBodyDirective)
+  protected readonly layout = computed(() =>
+    resolveChartAdapterLayout(this.options()),
+  )
+  protected readonly hostHeight = computed(
+    () =>
+      this.options().height ??
+      (this.layout().aspectRatio === undefined ? 320 : null),
+  )
+  protected readonly tooltipOutlet = viewChild.required('tooltipOutlet', {
+    read: ViewContainerRef,
+  })
+  readonly #tooltipBody = injectChartTooltipBody(
+    this.tooltipOutlet,
+    this.tooltipBodyDirective,
+  )
 
-  @ViewChild('defaultTooltipBody', { static: true })
-  declare private defaultTooltipBody: TemplateRef<unknown>
-
-  @ContentChild(ChartTooltipBodyDirective)
-  set tooltipBodyDirective(
-    directive: ChartTooltipBodyDirective<TDatum, TXValue, TYValue> | undefined,
-  ) {
-    if (directive === this.tooltipBody) return
-    this.destroyTooltipBodyView()
-    this.tooltipBody = directive
-    this.updateAdapter()
-    if (directive && this.tooltipBodyTarget) {
-      this.renderTooltipBody(this.tooltipBodyTarget)
-    }
-  }
-
-  initialMarkup = ''
-  hostClass = 'ts-chart-host'
-  hostStyle = 'position:relative;width:100%;height:320px'
-  protected defaultTooltipContent?: ChartTooltipContent
-  protected defaultTooltipText?: string
-
-  private readonly domRenderer = inject(Renderer2)
-  private readonly generatedId = inject(ChartIdGenerator).next()
-  private adapter?: ChartAdapter<
-    ChartRendererHostOptions<TDatum, TXValue, TYValue>,
-    TDatum,
-    TXValue,
-    TYValue
-  >
-  private activeRenderSvg?: ChartSvgRenderer<TDatum, TXValue, TYValue>
-  private renderer?: ChartRenderer<TDatum, TXValue, TYValue>
-  private tooltipBody?: ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
-  private tooltipBodyTarget?: ChartTooltipBodyTarget<TDatum, TXValue, TYValue>
-  private tooltipBodyView?: EmbeddedViewRef<
-    ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
-  >
+  readonly #domRenderer = inject(Renderer2)
+  readonly #platformId = inject(PLATFORM_ID)
+  readonly #generatedId = inject(ChartIdGenerator).next()
+  readonly #renderSvg = computed(
+    () => this.options().renderSvg ?? renderChartSvg,
+  )
+  readonly #renderer = computed(() =>
+    createSvgChartRenderer<TDatum, TXValue, TYValue>(this.#renderSvg()),
+  )
+  readonly #interactions = new WeakMap<
+    ChartInteractionController<TDatum, TXValue, TYValue>,
+    ChartInteractionController<TDatum, TXValue, TYValue>
+  >()
+  readonly #hostOptions = computed(() => {
+    const options = this.options()
+    const {
+      renderSvg: _renderSvg,
+      svgClass,
+      onRender,
+      onFocusChange,
+      onFocusGroupChange,
+      onSelect,
+      ...hostOptions
+    } = options
+    return {
+      ...hostOptions,
+      className: svgClass,
+      idPrefix: options.idPrefix ?? this.#generatedId,
+      renderer: this.#renderer(),
+      onRender: (
+        context: ChartRendererRenderContext<TDatum, TXValue, TYValue>,
+      ) =>
+        untracked(() => {
+          const svg = context.surface.defaultElement ?? context.surface.element
+          const SvgElement =
+            context.container.ownerDocument.defaultView?.SVGSVGElement
+          if (!SvgElement || !(svg instanceof SvgElement)) {
+            throw new TypeError('Expected the SVG chart surface.')
+          }
+          const rendered = {
+            ...context,
+            svg,
+            interaction: this.#adaptInteraction(context.interaction),
+          }
+          onRender?.(rendered)
+          this.rendered.emit(rendered)
+        }),
+      onFocusChange: (point) =>
+        untracked(() => {
+          onFocusChange?.(point)
+          this.focusChange.emit(point)
+        }),
+      onFocusGroupChange: (points) =>
+        untracked(() => {
+          onFocusGroupChange?.(points)
+          this.focusGroupChange.emit(points)
+        }),
+      onSelect: (point) =>
+        untracked(() => {
+          onSelect?.(point)
+          this.pointSelect.emit(point)
+        }),
+      onTooltipBodyChange: this.tooltipBodyDirective()
+        ? this.#tooltipBody
+        : undefined,
+    } satisfies ChartRendererHostOptions<TDatum, TXValue, TYValue>
+  })
+  readonly #getAdapter = injectChartRendererAdapter(this.#hostOptions)
 
   constructor() {
-    afterNextRender(() => {
-      this.adapter?.mount(this.surface.nativeElement)
+    const isServer = this.#platformId === 'server'
+    const updateOptions = () => {
+      const options = this.#hostOptions()
+      const surface = this.surface()
+      if (!surface) return
+      untracked(() => {
+        const adapter = this.#getAdapter()
+        adapter.update(options)
+        if (isServer) {
+          // SSR serializes current options without mounting or measuring DOM.
+          this.#domRenderer.setProperty(
+            surface.nativeElement,
+            'innerHTML',
+            adapter.prerender(),
+          )
+        }
+      })
+    }
+    // Only scheduling differs: both platforms execute the same update callback.
+    // The mounted core mixes DOM measurements and writes in a single operation.
+    const registerOptionsEffect = isServer
+      ? effect
+      : (callback: () => void) =>
+          afterRenderEffect({ mixedReadWrite: callback })
+    registerOptionsEffect(updateOptions)
+
+    afterNextRender({
+      mixedReadWrite: () =>
+        untracked(() => {
+          // Mount directly for CSR; the renderer adopts existing SVG during hydration.
+          const surface = this.surface()
+          if (surface) this.#getAdapter().mount(surface.nativeElement)
+        }),
     })
   }
 
-  ngOnChanges(_changes: SimpleChanges) {
-    if (!this.options) return
-    const layout = resolveChartAdapterLayout(this.options)
-    this.hostClass = this.options.class
-      ? `ts-chart-host ${this.options.class}`
-      : 'ts-chart-host'
-    this.hostStyle = [
-      'position:relative',
-      `width:${this.options.width === undefined ? '100%' : `${this.options.width}px`}`,
-      this.options.height !== undefined
-        ? `height:${this.options.height}px`
-        : layout.aspectRatio === undefined
-          ? 'height:320px'
-          : `aspect-ratio:${layout.aspectRatio}`,
-      this.options.style,
-    ]
-      .filter(Boolean)
-      .join(';')
-
-    this.updateAdapter()
-  }
-
-  ngAfterViewInit() {
-    const surface = this.surface.nativeElement
-    if (!surface.childElementCount) {
-      this.domRenderer.setProperty(surface, 'innerHTML', this.initialMarkup)
-    }
-  }
-
-  ngOnDestroy() {
-    this.adapter?.destroy()
-    this.destroyTooltipBodyView()
-  }
-
-  private updateAdapter() {
-    if (!this.options) return
-    const hostOptions = toHostOptions(
-      this.options,
-      this.options.idPrefix ?? this.generatedId,
-      this.resolveRenderer(this.options.renderSvg ?? renderChartSvg),
-      this.tooltipBody ? this.handleTooltipBodyChange : undefined,
-    )
-    if (!this.adapter) {
-      this.adapter = createChartRendererAdapter(hostOptions)
-      this.initialMarkup = this.adapter.prerender()
-    } else {
-      this.adapter.update(hostOptions)
-    }
-  }
-
-  private resolveRenderer(
-    renderSvg: ChartSvgRenderer<TDatum, TXValue, TYValue>,
+  #adaptInteraction(
+    controller: ChartInteractionController<TDatum, TXValue, TYValue>,
   ) {
-    if (!this.renderer || renderSvg !== this.activeRenderSvg) {
-      this.activeRenderSvg = renderSvg
-      this.renderer = createSvgChartRenderer(renderSvg)
+    const existing = this.#interactions.get(controller)
+    if (existing) return existing
+    const interaction: ChartInteractionController<TDatum, TXValue, TYValue> = {
+      clientToScene: (x, y) => untracked(() => controller.clientToScene(x, y)),
+      resolvePointer: (x, y) =>
+        untracked(() => controller.resolvePointer(x, y)),
+      setControlledFocus: (target, options) =>
+        untracked(() => controller.setControlledFocus(target, options)),
     }
-    return this.renderer
-  }
-
-  private readonly handleTooltipBodyChange = (
-    target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue> | null,
-  ) => {
-    if (!target) {
-      this.tooltipBodyTarget = undefined
-      this.destroyTooltipBodyView()
-      return
-    }
-    this.tooltipBodyTarget = target
-    this.renderTooltipBody(target)
-  }
-
-  private renderTooltipBody(
-    target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue>,
-  ) {
-    const directive = this.tooltipBody
-    if (!directive) return
-    this.defaultTooltipText =
-      typeof target.content === 'string' ? target.content : undefined
-    this.defaultTooltipContent =
-      typeof target.content === 'string' ? undefined : target.content
-
-    const context = this.tooltipBodyView?.context
-    if (context) {
-      context.points = target.points
-      context.content = target.content
-      context.defaultBody = this.defaultTooltipBody
-      context.pinned = target.pinned
-      context.dismiss = target.dismiss
-      this.moveTooltipBodyView(target.element)
-      this.tooltipBodyView?.detectChanges()
-      return
-    }
-
-    const nextContext = {
-      primaryPoint: target.primaryPoint,
-      points: target.points,
-      content: target.content,
-      defaultBody: this.defaultTooltipBody,
-      pinned: target.pinned,
-      dismiss: target.dismiss,
-    } as ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
-    nextContext.$implicit = nextContext
-    this.tooltipBodyView = this.tooltipOutlet.createEmbeddedView(
-      directive.templateRef,
-      nextContext,
-    )
-    this.moveTooltipBodyView(target.element)
-    this.tooltipBodyView.detectChanges()
-  }
-
-  private moveTooltipBodyView(target: HTMLElement) {
-    for (const node of this.tooltipBodyView?.rootNodes ?? []) {
-      target.append(node)
-    }
-  }
-
-  private destroyTooltipBodyView() {
-    const view = this.tooltipBodyView
-    if (!view) return
-    const nodes = [...view.rootNodes] as Node[]
-    const index = this.tooltipOutlet.indexOf(view)
-    if (index === -1) view.destroy()
-    else this.tooltipOutlet.remove(index)
-    for (const node of nodes) node.parentNode?.removeChild(node)
-    this.tooltipBodyView = undefined
-  }
-}
-
-function toHostOptions<
-  TDatum,
-  TXValue extends ChartValue,
-  TYValue extends ChartValue,
->(
-  options: ChartOptions<TDatum, TXValue, TYValue>,
-  idPrefix: string,
-  renderer: ChartRenderer<TDatum, TXValue, TYValue>,
-  onTooltipBodyChange:
-    | ((
-        target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue> | null,
-      ) => void)
-    | undefined,
-): ChartRendererHostOptions<TDatum, TXValue, TYValue> {
-  const {
-    class: _class,
-    style: _style,
-    renderSvg: _renderSvg,
-    onRender,
-    ...hostOptions
-  } = options
-  return {
-    ...hostOptions,
-    idPrefix,
-    renderer,
-    onRender: adaptOnRender(onRender),
-    onTooltipBodyChange,
-  }
-}
-
-function adaptOnRender<
-  TDatum,
-  TXValue extends ChartValue,
-  TYValue extends ChartValue,
->(onRender: ChartOptions<TDatum, TXValue, TYValue>['onRender']) {
-  if (!onRender) return undefined
-  return (
-    context: ChartRendererRenderContext<TDatum, TXValue, TYValue>,
-  ): void => {
-    const svg = context.surface.defaultElement ?? context.surface.element
-    const SvgElement =
-      context.container.ownerDocument.defaultView?.SVGSVGElement
-    if (!SvgElement || !(svg instanceof SvgElement)) {
-      throw new TypeError('Expected the SVG chart surface.')
-    }
-    onRender({
-      container: context.container,
-      scene: context.scene,
-      surface: context.surface,
-      svg,
-      interaction: context.interaction,
-    })
+    this.#interactions.set(controller, interaction)
+    return interaction
   }
 }

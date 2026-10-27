@@ -23,7 +23,7 @@ applications use the Angular standalone component from
 `@tanstack/charts/angular`.
 
 ```sh
-pnpm add @tanstack/charts @angular/core @angular/platform-browser
+pnpm add @tanstack/charts @angular/common @angular/core @angular/platform-browser
 ```
 
 ```ts
@@ -33,7 +33,7 @@ import { Chart } from '@tanstack/charts/angular'
 
 @Component({
   imports: [Chart],
-  template: `<tanstack-chart [options]="chartOptions" />`,
+  template: `<div tanstack-chart [options]="chartOptions"></div>`,
 })
 export class RevenueChart {
   chartOptions = {

@@ -15,7 +15,6 @@ import type { ComparisonCase } from './comparison-charts'
 
 @Component({
   selector: 'charts-angular-app',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [OriginalExample, SignalExample],
   templateUrl: './App.html',

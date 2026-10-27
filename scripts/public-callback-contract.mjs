@@ -608,17 +608,10 @@ const callbackInventory = {
       '@tanstack/charts:src/dom-types.ts:ChartHostControlInstance',
       'update contains destroy',
     ],
-    [
-      '@tanstack/angular-charts:src/Chart.ts:Chart',
-      'ngAfterViewInit ngOnChanges ngOnDestroy',
-    ],
+    ['@tanstack/angular-charts:src/Chart.ts:Chart', 'options'],
     [
       '@tanstack/angular-charts:src/ChartTooltipBody.ts:ChartTooltipBodyDirective',
-      'ngTemplateContextGuard',
-    ],
-    [
-      '@tanstack/angular-charts:src/ChartComponent.ts:ChartComponent',
-      'options',
+      'definition ngTemplateContextGuard',
     ],
     [
       '@tanstack/charts:src/adapter-shared.ts:ChartAdapter',

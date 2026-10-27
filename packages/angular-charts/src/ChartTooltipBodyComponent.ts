@@ -10,7 +10,6 @@ import type { ChartTooltipBodyTemplateContext } from './types'
 
 @Component({
   selector: 'div[tanstack-chart-tooltip-body]',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgTemplateOutlet],
   host: { style: 'display: contents' },
