@@ -5,7 +5,7 @@ observed difficulty from examples, production migrations, tests, and agent
 evaluations so later API, documentation, and TanStack Intent skill work is
 based on evidence.
 
-Last updated: 2026-09-30
+Last updated: 2026-10-10
 
 ## Triage rule
 
@@ -351,6 +351,14 @@ Each entry records:
 | F-312 | Tick stubs could not be styled independently                   | API                   | resolved   |
 | F-313 | Initial observer precision cancelled entrance motion           | Tooling               | resolved   |
 | F-314 | Framework ticks and immediate focus layers were unclear        | Documentation         | resolved   |
+
+| F-315 | Angular focus operations tracked incidental callback reads | API | resolved |
+| F-316 | Angular host identity and layout belonged to different elements | API | resolved |
+| F-317 | Signal Angular workspace sources bypassed the test compiler | Tooling | resolved |
+| F-318 | Callback inventory treated JavaScript private methods as public | Tooling | resolved |
+| F-319 | Angular dynamic component inputs required one update protocol | Application | resolved |
+| F-320 | Global pnpm migrated the workspace before dependency validation | Tooling | resolved |
+| F-321 | Angular signal queries reject ECMAScript private fields | Tooling | resolved |
 
 ## Findings
 
@@ -8933,11 +8941,22 @@ Each entry records:
   active style. Repeated colors made the hovered series ambiguous.
 - Decision: expose `context.primaryPoint` and `row.active`, highlight the
   primary row in default grouped content, and refresh custom bodies when the
-  primary point changes within the same focus group. All framework body
-  renderers preserve this state and DOM defaults use CSS-variable styling.
+  primary point changes within the same focus group. DOM defaults use CSS-variable styling. The original Angular adapter
+  omitted `primaryPoint` when updating its reused context; `ChartComponent`
+  now forwards every target field through Angular component inputs. A private
+  component renders the projected template and default body with NgTemplateOutlet;
+  no target signal, context getters, moved view nodes or inactive dismiss fallback
+  are needed. Active target changes reuse the view, while null targets destroy it
+  and reopening creates a fresh view, matching React and Solid. A template-only
+  effect handles projection changes that do not emit a new core target.
 - Verification: runtime regressions cover moving between same-colored series
   with built-in and custom content while preserving visual order. Existing
-  x- and y-grouped ordering tests pass.
+  x- and y-grouped ordering tests pass. The Angular comparison reproduces the
+  original stale January primary point after selecting February. Compiled
+  ChartComponent tests cover primary-point freshness, view reuse, hiding and
+  reopening, dismissal, and template replacement. These regressions pass after
+  removing the redundant state and using component inputs. The deprecated
+  `Chart` preserves its behavior in the shared Angular entry.
 
 ### F-296 - CSS height changes did not relayout DOM charts
 
@@ -9354,3 +9373,138 @@ Each entry records:
   direction changes. A focus dot appears during entrance while the data path
   and its running animation remain intact. Concurrent inline states remain a
   separate feature; this addresses the documented alternatives requested.
+
+### F-315 - Angular focus operations tracked incidental callback reads
+
+- Status: resolved
+- Severity: medium
+- Owner: API
+- Observed in: the Angular comparison's shared focus effect and logging callback
+- Friction: calling the original controller's `setControlledFocus` inside an
+  effect tracks the logging-format signal read by its synchronous callback.
+  Changing the format reruns the focus effect without changing the requested point.
+- Decision: `ChartComponent` in the existing Angular entry exposes stable untracked
+  controller operations and invokes consumer callbacks untracked. Deprecated
+  `Chart` preserves its original behavior.
+- Verification: compiled tests keep the effect count stable when the callback's
+  locale changes. Chromium reproduces the original count changing from one to
+  two while the new adapter stays at one after a logging-format change.
+
+### F-316 - Angular host identity and layout belonged to different elements
+
+- Status: resolved
+- Severity: medium
+- Owner: API
+- Observed in: the Angular comparison's shared ID, class, data attribute and height
+- Friction: attributes and Angular class/style bindings target `tanstack-chart`,
+  while its inner `.ts-chart-host` owns layout. A compound selector misses the
+  inner host, and a native 180px binding leaves the rendered scene at 320px.
+- Decision: export `ChartComponent` with `div[tanstack-chart]` from the existing
+  Angular entry so one native element owns identity and layout. Deprecate `Chart`
+  and retain it for compatibility and comparison. Keep its presentation options
+  and the tooltip directive's value-shaped definition property. The new component
+  uses native class/style bindings and explicit `svgClass` for the root SVG.
+  Static positioning belongs directly on the host; numeric dimension bindings
+  use Angular's px units without CSS string conversion. A generic width binding
+  set to null overrode the pixel binding during the refactor; a static responsive
+  width default and one pixel binding avoid that collision.
+- Verification: nine compiled tests cover attributes, classes, SVG/controller reuse,
+  SVG class targeting, native binding precedence, fixed dimensions, aspect ratio,
+  fallback sizing, SSR updates and hydration. Chromium matches the new compound
+  selector and measures 176px of chart content inside the 180px bordered host.
+
+### F-317 - Signal Angular workspace sources bypassed the test compiler
+
+- Status: resolved
+- Severity: medium
+- Owner: Tooling
+- Observed in: compiled Angular comparison tests loaded source package exports
+- Friction: the CLI externalized the workspace signal entry; Vite loaded its
+  uncompiled signal-input and query declarations. Required inputs remained unset
+  even though the application build compiled correctly. Explicit program roots
+  alone did not prevent externalization. The native LMDB cache also crashed the
+  CLI on this macOS setup.
+- Decision: map the test's Angular entry import to its workspace source,
+  ensuring Angular compiles that entry, and disable the example's CLI cache.
+- Verification: all nine compiled adapter tests pass, including SSR, hydration, automatic
+  zoneless updates and cleanup. The hydration test restores client DOM types
+  and Angular's document after the server emulator replaces process globals;
+  SVG and mark nodes retain their identities through hydration and updates.
+  The production application build passes.
+
+### F-318 - Callback inventory treated JavaScript private methods as public
+
+- Status: resolved
+- Severity: low
+- Owner: Tooling
+- Observed in: ChartComponent's encapsulated controller helpers
+- Friction: the callback inventory recognized TypeScript private modifiers but
+  classified JavaScript `#private` methods as published callbacks.
+- Decision: exclude PrivateIdentifier declarations at the visibility boundary;
+  classify signal inputs and the directive's template guard as service methods.
+- Verification: the inventory regression exposes only the ChartComponent options input
+  and direct validation of all 816 published callback surfaces passes. The full
+  test suite's 30-second setup hook times out on this machine; direct inventory
+  validation completes without that hook limit.
+
+### F-319 - Angular dynamic component inputs required one update protocol
+
+- Status: resolved
+- Severity: medium
+- Owner: Application
+- Observed in: replacing the Angular tooltip bridge with createComponent
+- Friction: configuring inputBinding for the template and using setInput for
+  the target throws NG0317. Angular disallows setInput on any component using
+  inputBinding or twoWayBinding, even when they target different inputs. The
+  first compiled tooltip regression reproduced this exception.
+- Decision: use setInput for both inputs. Forward core targets directly and
+  use a separate effect only for projected-template changes. Angular owns a
+  child host inside the core body so view destruction cannot remove core's host.
+  A template-owned ViewContainerRef now creates the component and owns view
+  attachment and removal; only placement into the core body remains manual.
+  ApplicationRef attachment, explicit injector plumbing, manual host creation,
+  and redundant detach/remove calls are unnecessary.
+- Verification: compiled regressions pass for focus changes, template replacement,
+  removing/restoring projection, hide/reopen, dismissal and owner destruction.
+  Angular 19.0 and 20.0 strict compilation and runtime validation also pass,
+  preserving the existing peer floor while targeting modern signal APIs.
+  The ViewContainerRef cleanup passes all nine compiled browser and SSR tests,
+  including active view reuse, hide/reopen, template replacement and destruction.
+
+### F-320 - Global pnpm migrated the workspace before dependency validation
+
+- Status: resolved
+- Severity: medium
+- Owner: Tooling
+- Observed in: adding the Angular common peer for NgTemplateOutlet
+- Friction: invoking global pnpm 12 for an offline install began migrating the
+  pnpm 11 workspace, then failed its dependency metadata check and left existing
+  dependency links unavailable. Restoring with an unfrozen install would resolve
+  the whole workspace rather than just the added peer.
+- Decision: install the repository's exact pnpm 11.15.1 in a temporary directory
+  and restore with the existing frozen lockfile, adding only the Angular common
+  importer entries. Use direct workspace CLI binaries with the temporary pnpm
+  directory first on PATH. Angular CLI also invokes pnpm --version during startup;
+  leaving the global executable on PATH stalled the final test run before building.
+  For test-only runs through the workspace `ng` binary,
+  `npm_config_manage_package_manager_versions=false` also avoids that version
+  probe switching package managers, without installing dependencies.
+- Verification: the frozen install succeeds, package versions stay locked, and
+  the library build, compiled adapter tests and production application build pass.
+  The follow-up structured-tooltip and nested-chart regression passes with this
+  test-only configuration; all ten compiled Angular tests pass.
+
+### F-321 - Angular signal queries reject ECMAScript private fields
+
+- Status: resolved
+- Severity: low
+- Owner: Tooling
+- Observed in: simplifying tooltip ownership with a template view container
+- Friction: declaring the outlet as an ECMAScript-private viewChild field fails
+  Angular AOT compilation with NG1053, despite private fields being preferred
+  for ordinary implementation state.
+- Decision: keep compiler-managed signal queries protected, as with the existing
+  surface and content queries. Keep ordinary private implementation fields as
+  ECMAScript-private fields.
+- Verification: all nine compiled browser and SSR adapter tests pass with the
+  protected outlet query, including destruction before required queries are set.

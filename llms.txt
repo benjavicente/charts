@@ -16,7 +16,7 @@ Read the canonical pages below. Each concept is documented once; guides and exam
 - docs/framework/vue/adapter.md: Vue Adapter: Render and hydrate TanStack Charts with Vue 3.
 - docs/framework/solid/adapter.md: Solid Adapter: Render and hydrate TanStack Charts with Solid.
 - docs/framework/svelte/adapter.md: Svelte Adapter: Render and hydrate TanStack Charts with Svelte 5.
-- docs/framework/angular/adapter.md: Angular Adapter: Render TanStack Charts with an Angular standalone component.
+- docs/framework/angular/adapter.md: Angular Adapter: Render TanStack Charts with a signal-first Angular component and native chart host.
 - docs/framework/lit/adapter.md: Lit Adapter: Render TanStack Charts with a light-DOM Lit custom element.
 - docs/framework/alpine/adapter.md: Alpine Adapter: Mount TanStack Charts with an Alpine directive.
 - docs/framework/octane/quick-start.md: Octane Quick Start: Install the Octane adapter, define a typed chart, render responsive SSR-safe SVG, and add native interaction.

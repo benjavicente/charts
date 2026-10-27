@@ -4,10 +4,13 @@ description: Complete option and type reference for the @tanstack/charts/angular
 ---
 
 ```ts
-import { Chart } from '@tanstack/charts/angular'
+import { ChartComponent } from '@tanstack/charts/angular'
 ```
 
-`Chart` is a standalone component with selector `tanstack-chart`. Its required
+`ChartComponent` is a standalone component with selector `div[tanstack-chart]`.
+The deprecated `Chart` retains selector `tanstack-chart`. Both are exported from
+the same entry. `ChartComponent` accepts `ChartComponentOptions`; the deprecated
+component retains `ChartOptions`. The required
 `options` input accepts a chart definition. Replace the definition identity
 when captured application values change.
 The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimation`,
@@ -32,20 +35,18 @@ The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimatio
 | `onFocusGroupChange` | `(points: readonly ChartPoint[]) => void`    | None                  | Grouped focus callback                                              |
 | `onSelect`           | `(point: ChartPoint \| null) => void`        | None                  | Pointer or keyboard activation callback                             |
 | `onRender`           | `(context: ChartRenderContext) => void`      | None                  | Default SVG, complete surface, container, and scene after rendering |
-| `class`              | `string`                                     | None                  | Extra class on the inner `.ts-chart-host`                           |
-| `style`              | `string`                                     | None                  | Inner host declarations applied after adapter sizing                |
-| `className`          | `string`                                     | None                  | Extra class on the rendered chart surface                           |
+| `svgClass`           | `string`                                     | None                  | Extra class on the rendered root SVG                                |
 
 Callbacks are functions inside `options`, not Angular outputs. Replace the
 complete `options` value when chart state changes so `OnPush` change detection
-delivers an `ngOnChanges` update.
+delivers a reactive input update.
 
 ## Tooltip body template
 
 Project a typed tooltip template into the chart:
 
 ```html
-<tanstack-chart [options]="chartOptions">
+<div tanstack-chart [options]="chartOptions">
   <ng-template [tanstackChartTooltipBody]="chartOptions.definition" let-tooltip>
     <ng-container [ngTemplateOutlet]="tooltip.defaultBody" />
     <series-detail [points]="tooltip.points" />
@@ -53,11 +54,11 @@ Project a typed tooltip template into the chart:
     <button type="button" (click)="tooltip.dismiss()">Close</button>
     }
   </ng-template>
-</tanstack-chart>
+</div>
 ```
 
 Import `ChartTooltipBodyDirective` and Angular's `NgTemplateOutlet` beside
-`Chart`. The context exposes `points`, `content`, `defaultBody`, `pinned`, and
+`ChartComponent`. The context exposes `primaryPoint`, `points`, `content`, `defaultBody`, `pinned`, and
 `dismiss`; named template bindings are also available. Binding the same
 definition gives Angular's strict template checker the datum and x/y value
 types. Ordering, anchoring, placement, portaling, and pinning remain in the
@@ -65,10 +66,15 @@ definition.
 
 ## Exported types
 
-`ChartCommonOptions` contains common host and presentation options.
-`ChartOptions` adds the definition. `ChartPresentationOptions` contains
-`class` and `style`. The package exports `ChartTooltipBodyDirective`,
-`ChartTooltipBodyRenderContext`, and `ChartTooltipBodyTemplateContext`. It also
+`ChartComponentOptions` contains chart host options with `svgClass` for the
+root SVG. Host classes and styles use native Angular bindings.
+
+The deprecated `Chart` retains `ChartCommonOptions`, `ChartOptions`, and
+`ChartPresentationOptions`, including `class` and the string `style` for its
+inner host, and `className` for its SVG surface.
+
+The package also exports `ChartTooltipBodyDirective`,
+`ChartTooltipBodyRenderContext`, and `ChartTooltipBodyTemplateContext`. It
 re-exports `ChartDefinition` and `ChartPoint`.
 
 See the [Angular adapter](../adapter.md) for lifecycle and SSR behavior,

@@ -21,6 +21,14 @@ describe('public callback contract', () => {
     expect(validatePublicCallableSurfaces(inventory)).toEqual([])
   })
 
+  it('excludes ECMAScript private fields and methods from the public inventory', () => {
+    const signals = inventory.filter((surface) =>
+      surface.id.includes('src/ChartComponent.ts:ChartComponent.'),
+    )
+    expect(signals.map((surface) => surface.member)).toEqual(['options'])
+    expect(signals.some((surface) => surface.id.includes('#'))).toBe(false)
+  })
+
   it('follows exported values into private nested callback types', () => {
     const surfaces = new Map(inventory.map((surface) => [surface.id, surface]))
 

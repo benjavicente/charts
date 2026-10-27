@@ -11,6 +11,7 @@ export class ChartTooltipBodyDirective<
   TXValue extends ChartValue = ChartValue,
   TYValue extends ChartValue = ChartValue,
 > {
+  // Keep the value-shaped public property; this input is a type witness only.
   @Input({ required: true, alias: 'tanstackChartTooltipBody' })
   declare definition: ChartDefinition<TDatum, TXValue, TYValue>
 

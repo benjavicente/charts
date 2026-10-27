@@ -1,0 +1,116 @@
+<main class="demo">
+  <header class="demo__header">
+    <div>
+      <p class="demo__eyebrow">TanStack Charts · Angular</p>
+      <h1>Same charts. Two adapters.</h1>
+      <p class="demo__lede">
+        Compare the original Angular adapter with the new signal-first
+        component. Both columns use the same data, chart definitions and
+        controls.
+      </p>
+    </div>
+    <button class="theme-toggle" type="button" (click)="toggleTheme()">
+      {{ theme() === 'light' ? 'Dark theme' : 'Light theme' }}
+    </button>
+  </header>
+
+  <div class="comparison-columns" aria-hidden="true">
+    <div>
+      <strong>Deprecated Chart</strong><code>&#64;tanstack/charts/angular</code>
+    </div>
+    <div>
+      <strong>ChartComponent</strong><code>&#64;tanstack/charts/angular</code>
+    </div>
+  </div>
+
+  <div class="demo__grid">
+    @for (scenario of cases; track scenario.kind) {
+    <section
+      class="comparison-row"
+      [attr.data-case]="scenario.kind"
+      [attr.aria-labelledby]="scenario.kind + '-title'"
+    >
+      <header class="comparison-row__header">
+        <h2 [id]="scenario.kind + '-title'">{{ scenario.title }}</h2>
+        <p>{{ scenario.description }}</p>
+        <div class="chart-controls">
+          @switch (scenario.kind) { @case ('tooltip') {
+          <button
+            class="chart-control"
+            [attr.data-active]="tooltipPoint() === 'a'"
+            (click)="tooltipPoint.set('a')"
+          >
+            January
+          </button>
+          <button
+            class="chart-control"
+            [attr.data-active]="tooltipPoint() === 'b'"
+            (click)="tooltipPoint.set('b')"
+          >
+            February
+          </button>
+          } @case ('effect') {
+          <button
+            class="chart-control"
+            (click)="effectPoint.set(effectPoint() === 'a' ? 'b' : 'a')"
+          >
+            Focus next month
+          </button>
+          <button
+            class="chart-control"
+            (click)="logFormat.set(logFormat() === 'short' ? 'long' : 'short')"
+          >
+            Change logging format
+          </button>
+          <span class="control-note">Format: {{ logFormat() }}</span>
+          } @case ('host') {
+          <button
+            class="chart-control"
+            (click)="hostIdentity.set(hostIdentity() === 'revenue' ? 'forecast' : 'revenue')"
+          >
+            Change host identity
+          </button>
+          <button
+            class="chart-control"
+            (click)="hostHeight.set(hostHeight() === 180 ? 260 : 180)"
+          >
+            Change host height
+          </button>
+          <span class="control-note">Height binding: {{ hostHeight() }}px</span>
+          } @case ('lifetime') {
+          <button class="chart-control" (click)="toggleData()">
+            Update data
+          </button>
+          <button class="chart-control" (click)="toggleDimensions()">
+            Change dimensions
+          </button>
+          <button class="chart-control" (click)="toggleVisible()">
+            {{ visible() ? 'Unmount both' : 'Remount both' }}
+          </button>
+          } }
+        </div>
+      </header>
+      <div class="comparison-pair">
+        <original-example
+          [scenario]="scenario"
+          [options]="optionsFor(scenario)"
+          [requestedPoint]="scenario.kind === 'tooltip' ? tooltipPoint() : scenario.kind === 'effect' ? effectPoint() : null"
+          [logFormat]="logFormat()"
+          [hostIdentity]="hostIdentity()"
+          [nativeHeight]="scenario.kind === 'host' ? hostHeight() : undefined"
+          [visible]="scenario.kind !== 'lifetime' || visible()"
+        />
+        <signal-example
+          [scenario]="scenario"
+          [options]="optionsFor(scenario)"
+          [requestedPoint]="scenario.kind === 'tooltip' ? tooltipPoint() : scenario.kind === 'effect' ? effectPoint() : null"
+          [logFormat]="logFormat()"
+          [hostIdentity]="hostIdentity()"
+          [nativeHeight]="scenario.kind === 'host' ? hostHeight() : undefined"
+          [visible]="scenario.kind !== 'lifetime' || visible()"
+        />
+      </div>
+    </section>
+    }
+  </div>
+</main>

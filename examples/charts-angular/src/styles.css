@@ -1,0 +1,199 @@
+@import '@charts-internal/fixtures/styles.css';
+
+:root {
+  --ts-chart-1: #7c3aed;
+  --ts-chart-focus-fill: #fff;
+  --ts-chart-tooltip-background: #fff;
+  --ts-chart-tooltip-color: #18181b;
+}
+
+:root[data-theme='dark'] {
+  --ts-chart-1: #a78bfa;
+  --ts-chart-focus-fill: #18181b;
+  --ts-chart-tooltip-background: #18181b;
+  --ts-chart-tooltip-color: #fafafa;
+}
+
+.demo {
+  width: min(1240px, calc(100% - 40px));
+}
+.comparison-columns,
+.comparison-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.comparison-columns {
+  margin-bottom: 26px;
+}
+.comparison-columns > div {
+  display: grid;
+  gap: 5px;
+  padding: 0 20px;
+}
+.comparison-columns strong {
+  font-size: 17px;
+}
+.comparison-columns code,
+.control-note {
+  font-size: 12px;
+  color: #71717a;
+}
+.demo__grid {
+  gap: 44px;
+}
+.comparison-row__header {
+  margin-bottom: 14px;
+}
+.comparison-row__header h2 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+.comparison-row__header p {
+  max-width: 880px;
+  margin: 0 0 14px;
+  color: #71717a;
+  line-height: 1.6;
+  font-size: 14px;
+}
+.chart-controls {
+  align-items: center;
+}
+.chart-card {
+  height: 100%;
+}
+.chart-card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.chart-card[data-adapter='signal'] {
+  border-color: color-mix(in srgb, #7c3aed 32%, #e4e4e7);
+}
+.comparison-host {
+  display: block;
+  min-width: 0;
+}
+.chart-stage--host {
+  min-height: 340px;
+}
+.chart-placeholder {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  color: #71717a;
+  text-align: center;
+}
+.case-note {
+  margin: 14px 0 0;
+  color: #71717a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.case-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 28px;
+  margin: 18px 0 0;
+}
+.case-metrics > div {
+  display: grid;
+  gap: 5px;
+}
+.case-metrics dt {
+  color: #71717a;
+  font-size: 12px;
+}
+.case-metrics dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+details {
+  margin-top: 14px;
+  color: #71717a;
+  font-size: 12px;
+}
+summary {
+  cursor: pointer;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f4f4f5;
+  color: #3f3f46;
+}
+.comparison-tooltip {
+  display: grid;
+  gap: 5px;
+  min-width: 150px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: 10px;
+  background: var(--ts-chart-tooltip-background);
+  color: var(--ts-chart-tooltip-color);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+.comparison-tooltip > span {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.comparison-tooltip > strong {
+  font-size: 16px;
+}
+.comparison-tooltip ng-container {
+  display: contents;
+}
+
+/* The same compound selectors target both adapter identities. Only the signal
+   adapter puts every attribute and class on the actual .ts-chart-host. */
+.ts-chart-host#host-revenue-original[data-owner='revenue'].chart-host-revenue-original,
+.ts-chart-host#host-revenue-signal[data-owner='revenue'].chart-host-revenue-signal {
+  border: 2px solid #7c3aed;
+  border-radius: 12px;
+  background: color-mix(in srgb, #7c3aed 6%, transparent);
+}
+.ts-chart-host#host-forecast-original[data-owner='forecast'].chart-host-forecast-original,
+.ts-chart-host#host-forecast-signal[data-owner='forecast'].chart-host-forecast-signal {
+  border: 2px solid #0891b2;
+  border-radius: 12px;
+  background: color-mix(in srgb, #0891b2 8%, transparent);
+}
+
+[data-theme='dark'] .comparison-row__header p,
+[data-theme='dark'] .comparison-columns code,
+[data-theme='dark'] .control-note,
+[data-theme='dark'] .case-note,
+[data-theme='dark'] .case-metrics dt,
+[data-theme='dark'] details {
+  color: #a1a1aa;
+}
+[data-theme='dark'] pre {
+  background: #27272a;
+  color: #d4d4d8;
+}
+[data-theme='dark'] .chart-card[data-adapter='signal'] {
+  border-color: #6d28d9;
+}
+
+@media (max-width: 760px) {
+  .comparison-columns {
+    display: none;
+  }
+  .comparison-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .demo {
+    width: calc(100% - 24px);
+    padding-top: 28px;
+  }
+  .chart-card__header {
+    flex-direction: row;
+  }
+}

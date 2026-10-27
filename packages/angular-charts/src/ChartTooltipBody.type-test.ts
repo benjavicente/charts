@@ -15,7 +15,9 @@ interface Datum {
   template: `
     <tanstack-chart [options]="options">
       <ng-template [tanstackChartTooltipBody]="options.definition" let-tooltip>
-        {{ tooltip.points[0]?.datum.id }}
+        @for (point of tooltip.points; track $index) {
+          {{ point.datum.id }}
+        }
         <button
           type="button"
           [disabled]="!tooltip.pinned"
