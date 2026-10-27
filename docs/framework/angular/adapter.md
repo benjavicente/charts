@@ -1,74 +1,127 @@
 ---
 title: Angular Adapter
-description: Render TanStack Charts with an Angular standalone component.
+description: Render TanStack Charts with a signal-first Angular component and native chart host.
 ---
 
-```sh
-pnpm add @tanstack/charts @angular/common @angular/core @angular/platform-browser
-```
+Import `ChartComponent` from `@tanstack/charts/angular` and attach it to a native
+`div`. It targets signal-based, zoneless applications. The same entry exports
+the deprecated `Chart` component for existing `<tanstack-chart>` templates.
 
 ```ts
-import { Component } from '@angular/core'
-import { Chart } from '@tanstack/charts/angular'
-import { defineChart } from '@tanstack/charts'
-import { tooltip } from '@tanstack/charts/tooltip'
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core'
+import { ChartComponent } from '@tanstack/charts/angular'
+import type { ChartComponentOptions } from '@tanstack/charts/angular'
 
 @Component({
-  imports: [Chart],
-  template: `<tanstack-chart [options]="chartOptions" />`,
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ChartComponent],
+  template: `
+    <div
+      tanstack-chart
+      [options]="options()"
+      id="revenue"
+      class="revenue-chart"
+      data-owner="revenue"
+      [style.height.px]="height()"
+    ></div>
+  `,
 })
 export class RevenueChart {
-  chartOptions = {
-    definition: defineChart(createRevenueChart(rows), { tooltip }),
+  readonly height = signal(240)
+  readonly options = signal<ChartComponentOptions>({
+    definition, // A shared framework-neutral chart definition.
     ariaLabel: 'Revenue by month',
-    aspectRatio: 16 / 9,
-  }
+  })
 }
 ```
 
-The single `options` input works with immutable values and signals. The
-standalone component ships as a partial-compiled Angular package.
+Configure zoneless change detection in the application bootstrap when required
+by the Angular version in use. The examples target Angular 20 and later. The existing Angular peer range remains
+`>=19`, and the component explicitly declares standalone and `OnPush` behavior.
+Configure `provideZonelessChangeDetection()` on Angular 20 and later, or
+`provideExperimentalZonelessChangeDetection()` on Angular 19.
 
-## Lifecycle
+## Native host and options
 
-`ngOnChanges` creates or updates one shared adapter controller.
-Angular's `afterNextRender` mounts it into the prerendered surface in the
-browser, and `ngOnDestroy` cleans it up. Replace the complete `options` value
-when chart state changes; mutating the existing object does not produce an
-`OnPush` input change. Callbacks such as `onFocusChange` are functions inside
-`options`, not Angular outputs.
+The native `div` is the `.ts-chart-host`. Its ID, classes, data attributes and
+Angular style bindings apply to the element that owns chart layout. Native
+height bindings override the component's default height; omit `options.height`
+and `aspectRatio` when CSS should control scene height. Explicit option
+dimensions still control scene geometry.
 
-## Browser and server status
+Use immutable `options` updates. The input and template queries are signals;
+pure computed values derive layout and renderer options. A lazy getter creates
+one adapter at its first imperative use and registers disposal with its Angular
+owner. One shared callback applies options on both platforms: a render effect
+schedules it after native host bindings in the browser, and a component effect
+schedules it on the server. A separate one-time render callback mounts the chart.
+Server rendering serializes current options without mounting the browser runtime;
+hydration adopts the server SVG and mark nodes.
 
-The verified package contract covers complete SVG server rendering through
-Angular's `renderApplication`, browser mount, immutable updates, and teardown.
-With `provideClientHydration`, the adapter adopts the existing server-rendered
-SVG and mark nodes, preserves them through immutable updates, and cleans up
-on destruction. Installed-package checks cover Angular 19 and 22 AOT builds
-in Chromium, Firefox, and WebKit, not every version within the peer range.
+The options follow the [Chart reference](./reference/chart.md). Use native
+Angular class and style bindings on the host. `svgClass` applies to the rendered
+root SVG. Callback signal reads and operations on the `onRender` interaction
+controller run untracked, so a callback's incidental reads do not become
+dependencies of a calling effect.
 
-## Presentation and rendering
+## Projected tooltip bodies
 
-`options.class` and the string `options.style` apply to the inner
-`.ts-chart-host`; `options.className` applies to the rendered chart surface.
-The component starts with SVG and can compose marks that use
-`canvasChartRenderer`. Use `renderSvg` to replace SVG serialization without
-replacing the shared host.
+Import `ChartTooltipBodyDirective` from the same entry. Bind the definition to
+`[tanstackChartTooltipBody]` for strict template inference:
 
-Exports: `Chart`, `ChartCommonOptions`, `ChartOptions`,
-`ChartPresentationOptions`, `ChartTooltipBodyDirective`,
-`ChartTooltipBodyRenderContext`, `ChartTooltipBodyTemplateContext`,
-`ChartDefinition`, and `ChartPoint`.
+```html
+<div tanstack-chart [options]="options()">
+  <ng-template [tanstackChartTooltipBody]="options().definition" let-tooltip>
+    {{ tooltip.primaryPoint?.datum?.month }}
+    <ng-container [ngTemplateOutlet]="tooltip.defaultBody" />
+    <button (click)="tooltip.dismiss()">Dismiss</button>
+  </ng-template>
+</div>
+```
 
-## Tooltip body composition
+Import `NgTemplateOutlet` to render the default body. Every context field,
+including `primaryPoint`, follows the current tooltip target. Angular renders
+projected content in a private component inside the core-owned tooltip body;
+focus changes update that component's input and retain its embedded view.
+Replacing the template replaces the view. Hiding the tooltip destroys the body
+view, and reopening creates a fresh one, matching the React and Solid adapters.
+The shared core owns placement, portaling, focus, pinning and dismissal.
 
-Project an `ng-template` with
-`[tanstackChartTooltipBody]="chartOptions.definition"` for Angular-owned
-content. The definition binding is the generic type witness for strict template
-checking; it does not configure behavior a second time. Render
-`tooltip.defaultBody` through `NgTemplateOutlet` to retain native rows and
-swatches. The shared host owns focus, placement, portaling, inert transient
-state, pinning, and dismissal; Angular owns the embedded-view lifecycle.
+Exports: `ChartComponent`, `ChartComponentOptions`, deprecated `Chart`,
+`ChartCommonOptions`, `ChartOptions`, `ChartPresentationOptions`,
+`ChartTooltipBodyDirective`, `ChartTooltipBodyRenderContext`,
+`ChartTooltipBodyTemplateContext`, `ChartDefinition`, and `ChartPoint`.
 
-See the [`Chart` reference](./reference/chart.md) and
-[Chart Definition API](../../reference/chart-definitions.md).
+## Migrating from Chart
+
+Both components and `ChartTooltipBodyDirective` come from the same entry point.
+Replace `Chart` with `ChartComponent` in the component imports and change the
+host tag:
+
+```html
+<!-- Deprecated Chart -->
+<tanstack-chart [options]="options()"></tanstack-chart>
+
+<!-- ChartComponent -->
+<div tanstack-chart [options]="options()"></div>
+```
+
+Keep chart configuration and projected tooltip templates. Use
+`ChartComponentOptions` for the new component: move `options.class` and
+`options.style` to native Angular host bindings, and rename `className` to
+`svgClass`. `ChartComponent.options` is a signal when accessed through a
+component instance; Angular's `[options]` binding stays the same. Host IDs, classes and styles now belong to the layout
+owner, so CSS that targets the legacy outer/inner element structure must be
+updated. `Chart` keeps that structure and its original behavior for compatibility.
+The tooltip directive retains its value-shaped `definition` property and
+`tanstackChartTooltipBody` binding as a generic type witness.
+
+## Side-by-side example
+
+Run `pnpm dev:charts-angular` from the repository root. The example uses the same
+definitions and data in the deprecated and new component columns and the shared fixture stylesheet used by
+the other adapters. Its rows demonstrate tooltip primary-point freshness,
+callback tracking, native host identity and CSS sizing, and immutable updates
+with unmount/remount controls. Run the example's `test` script for compiled
+adapter regressions, then `build` and `test:browser` for the browser comparison.

@@ -38,3 +38,13 @@ export type ChartOptions<
   TXValue extends ChartValue = ChartValue,
   TYValue extends ChartValue = ChartValue,
 > = ChartHostOptions<TDatum, TXValue, TYValue> & ChartPresentationOptions
+
+/** Options for the native-host, signal-first component. Bind host classes/styles in the template. */
+export type ChartComponentOptions<
+  TDatum = unknown,
+  TXValue extends ChartValue = ChartValue,
+  TYValue extends ChartValue = ChartValue,
+> = Omit<ChartHostOptions<TDatum, TXValue, TYValue>, 'className'> & {
+  /** Extra class on the rendered root SVG. */
+  svgClass?: string
+}

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec",
+    "types": ["vitest/globals"],
+    "paths": {
+      "@tanstack/charts/angular": ["../../packages/charts-core/src/angular.ts"]
+    }
+  },
+  "include": ["src/**/*.spec.ts", "src/**/*.d.ts"]
+}

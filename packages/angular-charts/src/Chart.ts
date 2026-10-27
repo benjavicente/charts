@@ -51,6 +51,7 @@ class ChartIdGenerator {
   }
 }
 
+/** @deprecated Use ChartComponent with a native div[tanstack-chart] host. */
 @Component({
   selector: 'tanstack-chart',
   standalone: true,

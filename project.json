@@ -79,7 +79,8 @@
         "test-svelte",
         "test-svelte-ssr",
         "test-octane",
-        "test-octane-client"
+        "test-octane-client",
+        "test-angular"
       ],
       "options": {
         "command": "node -e \"console.log('Unit test targets passed.')\""
@@ -179,7 +180,9 @@
         "catalog-example-check",
         "catalog-index-check",
         "catalog-preview-check",
-        "conformance-app-build"
+        "conformance-app-build",
+        "test-angular",
+        "angular-app-build"
       ],
       "options": {
         "command": "node -e \"console.log('CI targets passed.')\""
@@ -205,12 +208,27 @@
         "catalog-example-check",
         "catalog-index-check",
         "catalog-preview-check",
-        "conformance-app-build"
+        "conformance-app-build",
+        "test-angular",
+        "angular-app-build"
       ],
       "options": {
         "command": "node -e \"console.log('Distributed CI targets passed.')\""
       },
       "cache": true
+    },
+    "test-angular": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter @charts-internal/angular-example test"
+      }
+    },
+    "angular-app-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm --filter @charts-internal/angular-example build"
+      },
+      "outputs": ["{workspaceRoot}/examples/charts-angular/dist"]
     }
   }
 }

@@ -1,0 +1,32 @@
+{
+  "name": "@charts-internal/angular-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "ng build",
+    "dev": "ng serve --host 127.0.0.1 --port 5193",
+    "test": "ng test --no-watch --isolate",
+    "test:browser": "node scripts/check-comparison.mjs"
+  },
+  "dependencies": {
+    "@angular/common": "^22.0.2",
+    "@angular/compiler": "^22.0.2",
+    "@angular/core": "^22.0.2",
+    "@angular/platform-browser": "^22.0.2",
+    "@angular/platform-server": "^22.0.2",
+    "@charts-internal/fixtures": "workspace:*",
+    "@tanstack/charts": "workspace:*",
+    "d3-scale": "4.0.2",
+    "rxjs": "^7.8.2",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.0.0",
+    "@angular/cli": "^22.0.0",
+    "@angular/compiler-cli": "^22.0.2",
+    "jsdom": "^29.0.2",
+    "typescript": "^6.0.0",
+    "vitest": "^4.1.9"
+  }
+}

@@ -622,6 +622,10 @@ const callbackInventory = {
       'ngTemplateContextGuard',
     ],
     [
+      '@tanstack/angular-charts:src/ChartComponent.ts:ChartComponent',
+      'options',
+    ],
+    [
       '@tanstack/charts:src/adapter-shared.ts:ChartAdapter',
       'destroy getScene mount prerender update',
     ],
@@ -1053,6 +1057,7 @@ function isLocalDeclaration(declaration, workspacePackage) {
 }
 
 function isPublicDeclaration(declaration) {
+  if (declaration.name && ts.isPrivateIdentifier(declaration.name)) return false
   const modifiers = ts.getCombinedModifierFlags(declaration)
   return !(modifiers & (ts.ModifierFlags.Private | ts.ModifierFlags.Protected))
 }

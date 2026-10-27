@@ -25,7 +25,8 @@
       "!{workspaceRoot}/**/README.md",
       "!{workspaceRoot}/**/dist/**/*",
       "!{workspaceRoot}/packages/*/docs/**/*",
-      "!{workspaceRoot}/packages/*/llms.txt"
+      "!{workspaceRoot}/packages/*/llms.txt",
+      "!{workspaceRoot}/**/.angular/**/*"
     ],
     "testDom": [
       "source",
@@ -43,7 +44,8 @@
       "!{workspaceRoot}/.nx/typescript/**/*",
       "!{workspaceRoot}/.nx/workspace-data/**/*",
       "!{workspaceRoot}/.release-artifacts/**/*",
-      "!{workspaceRoot}/node_modules/**/*"
+      "!{workspaceRoot}/node_modules/**/*",
+      "!{workspaceRoot}/**/.angular/**/*"
     ],
     "docs": [
       "sharedGlobals",
@@ -65,7 +67,8 @@
       "{workspaceRoot}/scripts/check-docs.mjs",
       "{workspaceRoot}/scripts/docs-contract.mjs",
       "{workspaceRoot}/scripts/packed-markdown-links.mjs",
-      "{workspaceRoot}/scripts/sync-package-docs.mjs"
+      "{workspaceRoot}/scripts/sync-package-docs.mjs",
+      "{workspaceRoot}/packages/angular-charts/signal-angular/src/**/*"
     ],
     "docsTest": [
       "docs",
@@ -255,6 +258,10 @@
       "cache": true,
       "inputs": ["release"],
       "outputs": ["{workspaceRoot}/.release-artifacts"]
+    },
+    "angular-app-build": {
+      "cache": true,
+      "inputs": ["source"]
     }
   },
   "nxCloudId": "6a728964bb91bb09533eb006"
