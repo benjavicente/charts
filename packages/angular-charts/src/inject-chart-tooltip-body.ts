@@ -1,5 +1,15 @@
-import { DestroyRef, effect, inject, untracked } from '@angular/core'
-import type { ComponentRef, ViewContainerRef } from '@angular/core'
+import {
+  DestroyRef,
+  inject,
+  inputBinding,
+  signal,
+  untracked,
+} from '@angular/core'
+import type {
+  ComponentRef,
+  ViewContainerRef,
+  WritableSignal,
+} from '@angular/core'
 import type { ChartTooltipBodyTarget, ChartValue } from '@tanstack/charts'
 import { ChartTooltipBodyComponent } from './ChartTooltipBodyComponent'
 import type { ChartTooltipBodyDirective } from './ChartTooltipBody'
@@ -14,20 +24,17 @@ export function injectChartTooltipBody<
     ChartTooltipBodyDirective<TDatum, TXValue, TYValue> | undefined,
 ) {
   let body:
-    | ComponentRef<ChartTooltipBodyComponent<TDatum, TXValue, TYValue>>
+    | {
+        ref: ComponentRef<ChartTooltipBodyComponent<TDatum, TXValue, TYValue>>
+        target: WritableSignal<ChartTooltipBodyTarget<TDatum, TXValue, TYValue>>
+      }
     | undefined
-
-  // Projection can change without core emitting a new tooltip target.
-  effect(() => {
-    const template = directive()?.templateRef ?? null
-    untracked(() => body?.setInput('template', template))
-  })
 
   const clear = () => {
     if (!body) return
     const current = body
     body = undefined
-    current.destroy()
+    current.ref.destroy()
   }
   inject(DestroyRef).onDestroy(() => untracked(clear))
 
@@ -37,17 +44,27 @@ export function injectChartTooltipBody<
         clear()
         return
       }
-      if (body && body.location.nativeElement.parentElement !== target.element)
+      if (
+        body &&
+        body.ref.location.nativeElement.parentElement !== target.element
+      )
         clear()
-      if (!body) {
-        // The chart owns the Angular view; core only owns its DOM destination.
-        const created = container().createComponent(
-          ChartTooltipBodyComponent<TDatum, TXValue, TYValue>,
-        )
-        target.element.append(created.location.nativeElement)
-        body = created
+      if (body) {
+        body.target.set(target)
+        return
       }
-      body.setInput('template', directive()?.templateRef ?? null)
-      body.setInput('target', target)
+      // Each body owns a non-null target signal for exactly its view lifetime.
+      const currentTarget = signal(target)
+      const ref = container().createComponent(
+        ChartTooltipBodyComponent<TDatum, TXValue, TYValue>,
+        {
+          bindings: [
+            inputBinding('target', currentTarget),
+            inputBinding('template', () => directive()?.templateRef ?? null),
+          ],
+        },
+      )
+      target.element.append(ref.location.nativeElement)
+      body = { ref, target: currentTarget }
     })
 }

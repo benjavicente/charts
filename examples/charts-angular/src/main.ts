@@ -1,7 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core'
-import { bootstrapApplication } from '@angular/platform-browser'
+import {
+  bootstrapApplication,
+  provideClientHydration,
+} from '@angular/platform-browser'
 import { App } from './app/App'
 
 bootstrapApplication(App, {
-  providers: [provideZonelessChangeDetection()],
+  providers: [provideZonelessChangeDetection(), provideClientHydration()],
 }).catch(console.error)

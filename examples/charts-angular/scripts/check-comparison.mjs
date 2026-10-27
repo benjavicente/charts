@@ -37,7 +37,26 @@ try {
   })
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto(`http://127.0.0.1:${server.address().port}`)
+  // Inspect the server HTML before the browser bootstrap can hydrate it.
+  const client = Promise.withResolvers()
+  await page.route('**/*.js', async (route) => {
+    await client.promise
+    await route.continue()
+  })
+  try {
+    await page.goto(`http://127.0.0.1:${server.address().port}`, {
+      waitUntil: 'commit',
+    })
+    await page.waitForSelector('[data-adapter="signal"] svg')
+    await page.evaluate(() => {
+      window.serverCharts = [
+        ...document.querySelectorAll('[data-adapter="signal"] svg'),
+      ].map((svg) => ({ svg, mark: svg.querySelector('.ts-chart__line path') }))
+    })
+    assert.equal(await page.evaluate(() => window.serverCharts.length), 4)
+  } finally {
+    client.resolve()
+  }
   await page.waitForFunction(
     () => document.querySelectorAll('svg').length === 8,
   )
@@ -47,6 +66,20 @@ try {
         '[data-tooltip-adapter="signal"] [data-testid="tooltip-primary"]',
       )?.textContent === 'January',
   )
+  assert.equal(
+    await page.evaluate(() =>
+      window.serverCharts.every(
+        ({ svg, mark }) =>
+          svg.isConnected &&
+          mark !== null &&
+          mark.isConnected &&
+          svg.querySelector('.ts-chart__line path') === mark,
+      ),
+    ),
+    true,
+    'Hydration must adopt the server SVG and mark nodes',
+  )
+  await page.unroute('**/*.js')
   const tooltip = (adapter) =>
     page.locator(
       `[data-tooltip-adapter="${adapter}"] [data-testid="tooltip-primary"]`,
@@ -143,6 +176,18 @@ try {
       .evaluate((element) => element === window.comparisonSvg),
     true,
   )
+  assert.equal(
+    await page.evaluate(() =>
+      window.serverCharts.every(
+        ({ svg, mark }) =>
+          svg.isConnected &&
+          mark.isConnected &&
+          svg.querySelector('.ts-chart__line path') === mark,
+      ),
+    ),
+    true,
+    'Immutable updates must preserve hydrated SVG and mark nodes',
+  )
   await lifetime.getByRole('button', { name: 'Unmount both' }).click()
   await page.waitForFunction(
     () => document.querySelectorAll('svg').length === 6,
@@ -159,7 +204,7 @@ try {
   )
   assert.deepEqual(errors, [])
   console.log(
-    'Angular comparison passed: both legacy bugs, native host styling, updates, remount, themes and mobile layout.',
+    'Angular comparison passed: SSR hydration, both legacy bugs, native host styling, updates, remount, themes and mobile layout.',
   )
 } finally {
   await browser.close()

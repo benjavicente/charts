@@ -11,7 +11,11 @@ import { defineChart, lineY } from '@tanstack/charts'
 import { tooltip } from '@tanstack/charts/tooltip'
 import { portal } from '@tanstack/charts/tooltip/portal'
 import { scaleLinear } from 'd3-scale'
-import type { ChartInteractionController, ChartPoint } from '@tanstack/charts'
+import type {
+  ChartInteractionController,
+  ChartPoint,
+  ChartRenderContext,
+} from '@tanstack/charts'
 import {
   ChartComponent,
   ChartTooltipBodyDirective,
@@ -49,6 +53,8 @@ class TooltipChild {
       id="consumer-chart"
       class="consumer-class"
       data-owner="consumer"
+      aria-label="Layout wrapper"
+      tabindex="-1"
       [style.width.px]="hostWidth()"
       [style.height.px]="hostHeight()"
       [options]="options()"
@@ -167,6 +173,35 @@ class PortaledTooltipHost extends TooltipHost {
   )
 }
 
+@Component({
+  standalone: true,
+  imports: [ChartComponent],
+  template: `
+    <div
+      tanstack-chart
+      [options]="options()"
+      (rendered)="renders.push($event)"
+      (focusChange)="onFocusOutput($event)"
+      (focusGroupChange)="groups.push($event)"
+      (pointSelect)="selections.push($event)"
+    ></div>
+  `,
+})
+class OutputHost extends TooltipHost {
+  readonly renders: ChartRenderContext<Datum, number, number>[] = []
+  readonly focused: (ChartPoint<Datum, number, number> | null)[] = []
+  readonly groups: (readonly ChartPoint<Datum, number, number>[])[] = []
+  readonly selections: (ChartPoint<Datum, number, number> | null)[] = []
+  readonly outputLocales: string[] = []
+  readonly focusOrder: string[] = []
+
+  onFocusOutput(point: ChartPoint<Datum, number, number> | null) {
+    this.focusOrder.push('output')
+    this.focused.push(point)
+    this.outputLocales.push(this.locale())
+  }
+}
+
 afterEach(() => TestBed.resetTestingModule())
 
 async function mount() {
@@ -180,6 +215,99 @@ async function mount() {
 }
 
 describe('signal Angular adapter', () => {
+  it('supports all four outputs alongside callbacks and without callbacks', async () => {
+    TestBed.configureTestingModule({
+      imports: [OutputHost],
+      providers: [provideZonelessChangeDetection()],
+    })
+    const fixture = TestBed.createComponent(OutputHost)
+    const host = fixture.componentInstance
+    const rendered: ChartRenderContext<Datum, number, number>[] = []
+    const focused: (ChartPoint<Datum, number, number> | null)[] = []
+    const groups: (readonly ChartPoint<Datum, number, number>[])[] = []
+    const selections: (ChartPoint<Datum, number, number> | null)[] = []
+    const initial = host.options()
+    host.options.set({
+      ...initial,
+      onRender: (context) => {
+        initial.onRender?.(context)
+        rendered.push(context)
+      },
+      onFocusChange: (point) => {
+        host.focusOrder.push('callback')
+        initial.onFocusChange?.(point)
+        focused.push(point)
+      },
+      onFocusGroupChange: (points) => groups.push(points),
+      onSelect: (point) => selections.push(point),
+    })
+    await fixture.whenStable()
+    expect(rendered.length).toBeGreaterThan(0)
+    expect(host.renders).toEqual(rendered)
+    expect(host.renders[0]).toBe(rendered[0])
+
+    host.selected.set('a')
+    await fixture.whenStable()
+    expect(focused.at(-1)?.datum.id).toBe('a')
+    expect(host.focused).toEqual(focused)
+    expect(host.groups).toEqual(groups)
+    expect(host.groups.at(-1)).toBe(groups.at(-1))
+    expect(host.focusOrder).toEqual(['callback', 'output'])
+    const effectRuns = host.focusEffectRuns
+    host.locale.set('fr')
+    await fixture.whenStable()
+    expect(host.focusEffectRuns).toBe(effectRuns)
+
+    const svg: SVGSVGElement = fixture.nativeElement.querySelector('svg')
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 0, 480, 260),
+    )
+    const point = host.points().find((point) => point.datum.id === 'b')!
+    svg.dispatchEvent(
+      new MouseEvent('click', {
+        bubbles: true,
+        clientX: point.x,
+        clientY: point.y,
+      }),
+    )
+    await fixture.whenStable()
+    expect(selections.at(-1)?.datum.id).toBe('b')
+    expect(host.selections).toEqual(selections)
+    expect(host.selections.at(-1)).toBe(selections.at(-1))
+
+    const callbackRenders = rendered.length
+    host.options.update((options) => ({
+      ...options,
+      onRender: undefined,
+      onFocusChange: undefined,
+      onFocusGroupChange: undefined,
+      onSelect: undefined,
+      ariaLabel: 'Output-only chart',
+    }))
+    await fixture.whenStable()
+    expect(rendered).toHaveLength(callbackRenders)
+    expect(host.renders.length).toBeGreaterThan(callbackRenders)
+    const callbackFocus = focused.length
+    const callbackGroups = groups.length
+    const callbackSelections = selections.length
+    host.controller()!.setControlledFocus(null)
+    host.focus('a')
+    svg.dispatchEvent(
+      new MouseEvent('click', {
+        bubbles: true,
+        clientX: point.x,
+        clientY: point.y,
+      }),
+    )
+    await fixture.whenStable()
+    expect(focused).toHaveLength(callbackFocus)
+    expect(groups).toHaveLength(callbackGroups)
+    expect(selections).toHaveLength(callbackSelections)
+    expect(host.focused.length).toBeGreaterThan(callbackFocus)
+    expect(host.groups.length).toBeGreaterThan(callbackGroups)
+    expect(host.selections.length).toBeGreaterThan(callbackSelections)
+  })
+
   it('updates structured default content and owns a nested chart in a portaled tooltip', async () => {
     childDestroys = 0
     TestBed.configureTestingModule({
@@ -354,6 +482,10 @@ describe('signal Angular adapter', () => {
     expect(element.classList.contains('ts-chart-host')).toBe(true)
     expect(element.classList.contains('consumer-class')).toBe(true)
     expect(element.dataset['owner']).toBe('consumer')
+    expect(element.getAttribute('aria-label')).toBe('Layout wrapper')
+    expect(element.getAttribute('tabindex')).toBe('-1')
+    expect(svg?.getAttribute('aria-label')).toBe('Signal revenue')
+    expect(svg?.getAttribute('tabindex')).toBe('0')
     expect(element.querySelector('.ts-chart-host')).toBeNull()
     host.hostWidth.set(600)
     host.options.update((options) => ({

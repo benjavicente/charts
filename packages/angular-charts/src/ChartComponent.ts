@@ -15,6 +15,7 @@ import {
   effect,
   inject,
   input,
+  output,
   untracked,
   viewChild,
 } from '@angular/core'
@@ -24,6 +25,8 @@ import { renderChartSvg } from '@tanstack/charts/svg'
 import { createSvgChartRenderer } from '@tanstack/charts/svg/renderer'
 import type {
   ChartInteractionController,
+  ChartPoint,
+  ChartRenderContext,
   ChartRendererHostOptions,
   ChartRendererRenderContext,
   ChartValue,
@@ -78,6 +81,12 @@ export class ChartComponent<
   readonly options =
     input.required<ChartComponentOptions<TDatum, TXValue, TYValue>>()
 
+  readonly rendered = output<ChartRenderContext<TDatum, TXValue, TYValue>>()
+  readonly focusChange = output<ChartPoint<TDatum, TXValue, TYValue> | null>()
+  readonly focusGroupChange =
+    output<readonly ChartPoint<TDatum, TXValue, TYValue>[]>()
+  readonly pointSelect = output<ChartPoint<TDatum, TXValue, TYValue> | null>()
+
   // The optional query lets the server effect wait for template creation.
   // Browser DOM work also waits until the query is available after rendering.
   protected readonly surface = viewChild<ElementRef<HTMLElement>>('surface')
@@ -129,32 +138,39 @@ export class ChartComponent<
       className: svgClass,
       idPrefix: options.idPrefix ?? this.#generatedId,
       renderer: this.#renderer(),
-      onRender: onRender
-        ? (context: ChartRendererRenderContext<TDatum, TXValue, TYValue>) =>
-            untracked(() => {
-              const svg =
-                context.surface.defaultElement ?? context.surface.element
-              const SvgElement =
-                context.container.ownerDocument.defaultView?.SVGSVGElement
-              if (!SvgElement || !(svg instanceof SvgElement)) {
-                throw new TypeError('Expected the SVG chart surface.')
-              }
-              onRender({
-                ...context,
-                svg,
-                interaction: this.#adaptInteraction(context.interaction),
-              })
-            })
-        : undefined,
-      onFocusChange: onFocusChange
-        ? (point) => untracked(() => onFocusChange(point))
-        : undefined,
-      onFocusGroupChange: onFocusGroupChange
-        ? (points) => untracked(() => onFocusGroupChange(points))
-        : undefined,
-      onSelect: onSelect
-        ? (point) => untracked(() => onSelect(point))
-        : undefined,
+      onRender: (
+        context: ChartRendererRenderContext<TDatum, TXValue, TYValue>,
+      ) =>
+        untracked(() => {
+          const svg = context.surface.defaultElement ?? context.surface.element
+          const SvgElement =
+            context.container.ownerDocument.defaultView?.SVGSVGElement
+          if (!SvgElement || !(svg instanceof SvgElement)) {
+            throw new TypeError('Expected the SVG chart surface.')
+          }
+          const rendered = {
+            ...context,
+            svg,
+            interaction: this.#adaptInteraction(context.interaction),
+          }
+          onRender?.(rendered)
+          this.rendered.emit(rendered)
+        }),
+      onFocusChange: (point) =>
+        untracked(() => {
+          onFocusChange?.(point)
+          this.focusChange.emit(point)
+        }),
+      onFocusGroupChange: (points) =>
+        untracked(() => {
+          onFocusGroupChange?.(points)
+          this.focusGroupChange.emit(points)
+        }),
+      onSelect: (point) =>
+        untracked(() => {
+          onSelect?.(point)
+          this.pointSelect.emit(point)
+        }),
       onTooltipBodyChange: this.tooltipBodyDirective()
         ? this.#tooltipBody
         : undefined,

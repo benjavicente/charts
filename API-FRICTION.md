@@ -9389,6 +9389,9 @@ Each entry records:
 - Verification: compiled tests keep the effect count stable when the callback's
   locale changes. Chromium reproduces the original count changing from one to
   two while the new adapter stays at one after a logging-format change.
+  Optional Angular outputs now coexist with all four notification callbacks;
+  compiled coverage verifies shared payloads, output-only usage, and untracked
+  listener reads. Value-producing callbacks remain ordinary functions.
 
 ### F-316 - Angular host identity and layout belonged to different elements
 
@@ -9431,6 +9434,12 @@ Each entry records:
   and Angular's document after the server emulator replaces process globals;
   SVG and mark nodes retain their identities through hydration and updates.
   The production application build passes.
+  Follow-up: remove the mixed server/browser hydration harness, including DOM
+  global restoration, `ngServerMode` mutation and the private document setter.
+  Keep server assertions on public `renderApplication` APIs; validate actual
+  Node prerendering and hydration in separate server and Chromium runtimes.
+  The browser check captures the server nodes before bootstrap and verifies
+  their identities through hydration and immutable updates.
 
 ### F-318 - Callback inventory treated JavaScript private methods as public
 
@@ -9464,12 +9473,21 @@ Each entry records:
   attachment and removal; only placement into the core body remains manual.
   ApplicationRef attachment, explicit injector plumbing, manual host creation,
   and redundant detach/remove calls are unnecessary.
+  Follow-up: the user approved an Angular 20 minimum. Bind both target and
+  template with `inputBinding`, replacing `setInput` and the projection-sync
+  effect. Each live body owns its target signal so hiding destroys its view
+  without ever delivering a null target to a live component. A separate
+  component ref remains necessary for moving and destroying that view.
 - Verification: compiled regressions pass for focus changes, template replacement,
   removing/restoring projection, hide/reopen, dismissal and owner destruction.
-  Angular 19.0 and 20.0 strict compilation and runtime validation also pass,
-  preserving the existing peer floor while targeting modern signal APIs.
+  The earlier setInput variant passed Angular 19.0 and 20.0 strict compilation
+  and runtime validation before the peer-floor change.
   The ViewContainerRef cleanup passes all nine compiled browser and SSR tests,
   including active view reuse, hide/reopen, template replacement and destruction.
+  With bindings and the Angular 20 floor, all ten compiled Angular 22 tests pass.
+  An Angular 20.0.0 consumer strictly compiles and links the Angular 22-built
+  package, then verifies outputs with callbacks, target freshness, projected
+  template removal/restoration, view reuse, destruction and Node SSR.
 
 ### F-320 - Global pnpm migrated the workspace before dependency validation
 

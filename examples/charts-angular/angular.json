@@ -13,12 +13,18 @@
             "outputPath": "dist/charts-angular",
             "index": "src/index.html",
             "browser": "src/main.ts",
+            "server": "src/main.server.ts",
+            "ssr": true,
             "tsConfig": "tsconfig.app.json",
             "styles": ["src/styles.css"]
           },
           "configurations": {
             "production": {
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "prerender": {
+                "discoverRoutes": false,
+                "routesFile": "prerender-routes.txt"
+              }
             },
             "development": {
               "optimization": false,

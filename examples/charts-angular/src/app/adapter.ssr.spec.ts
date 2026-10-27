@@ -5,38 +5,16 @@ import {
   destroyPlatform,
   provideZonelessChangeDetection,
   signal,
-  ɵsetDocument as setDocument,
 } from '@angular/core'
-import {
-  bootstrapApplication,
-  provideClientHydration,
-} from '@angular/platform-browser'
+import { bootstrapApplication } from '@angular/platform-browser'
 import {
   provideServerRendering,
   renderApplication,
 } from '@angular/platform-server'
 import { ChartComponent } from '@tanstack/charts/angular'
-import { DOCUMENT } from '@angular/common'
 import { describe, expect, it } from 'vitest'
 import { createRevenueChart, revenueData } from './comparison-charts'
 
-const clientDocument = document
-const ClientDOMParser = DOMParser
-const clientDomTypes = {
-  SVGSVGElement,
-  SVGElement,
-  Element,
-  HTMLElement,
-  Node,
-  Document,
-  DocumentFragment,
-  Text,
-  Comment,
-  Event,
-  KeyboardEvent,
-  MouseEvent,
-  DOMParser,
-}
 let browserMounts = 0
 
 @Component({
@@ -47,13 +25,11 @@ let browserMounts = 0
     '<div tanstack-chart id="server-revenue" [options]="options()"></div>',
 })
 class ServerChart {
-  renderCount = 0
   readonly options = signal({
     definition: createRevenueChart(revenueData),
     height: 260,
     ariaLabel: 'Server revenue',
     onRender: () => {
-      this.renderCount++
       browserMounts++
     },
   })
@@ -89,7 +65,10 @@ describe('signal Angular SSR', () => {
         bootstrapApplication(
           ServerChart,
           {
-            providers: [provideZonelessChangeDetection()],
+            providers: [
+              provideZonelessChangeDetection(),
+              provideServerRendering(),
+            ],
           },
           context,
         ),
@@ -113,7 +92,10 @@ describe('signal Angular SSR', () => {
         bootstrapApplication(
           AsyncServerChart,
           {
-            providers: [provideZonelessChangeDetection()],
+            providers: [
+              provideZonelessChangeDetection(),
+              provideServerRendering(),
+            ],
           },
           context,
         ),
@@ -126,75 +108,5 @@ describe('signal Angular SSR', () => {
     expect(html).toContain('aria-label="Final server revenue"')
     expect(html).not.toContain('aria-label="Server revenue"')
     expect(html).toContain('viewBox="0 0 640 180"')
-  })
-
-  it('adopts server SVG and mark nodes and preserves them through updates', async () => {
-    browserMounts = 0
-    destroyPlatform()
-    const html = await renderApplication(
-      (context) =>
-        bootstrapApplication(
-          ServerChart,
-          {
-            providers: [
-              provideZonelessChangeDetection(),
-              provideClientHydration(),
-              provideServerRendering(),
-            ],
-          },
-          context,
-        ),
-      {
-        document:
-          '<!doctype html><html><body><server-chart></server-chart></body></html>',
-      },
-    )
-    const parsed = new ClientDOMParser().parseFromString(html, 'text/html')
-    const nodes = [...parsed.body.childNodes].map((node) =>
-      clientDocument.importNode(node, true),
-    )
-    clientDocument.body.append(...nodes)
-    const svg = clientDocument.querySelector('#server-revenue svg')
-    const line = clientDocument.querySelector(
-      '#server-revenue .ts-chart__line path',
-    )
-    expect(svg).not.toBeNull()
-    expect(line).not.toBeNull()
-    // This isolated test runs server and browser phases in the same process.
-    // Angular platform-server sets this global when its module is loaded.
-    const serverMode = Reflect.get(globalThis, 'ngServerMode')
-    Object.assign(globalThis, clientDomTypes)
-    Reflect.set(globalThis, 'ngServerMode', false)
-    setDocument(clientDocument)
-    try {
-      const app = await bootstrapApplication(ServerChart, {
-        providers: [
-          provideZonelessChangeDetection(),
-          provideClientHydration(),
-          { provide: DOCUMENT, useValue: clientDocument },
-        ],
-      })
-      try {
-        await app.whenStable()
-        const host = app.components[0].instance as ServerChart
-        expect(host.renderCount).toBeGreaterThan(0)
-        expect(clientDocument.querySelector('#server-revenue svg')).toBe(svg)
-        expect(
-          clientDocument.querySelector('#server-revenue .ts-chart__line path'),
-        ).toBe(line)
-        host.options.update((options) => ({
-          ...options,
-          ariaLabel: 'Updated server revenue',
-        }))
-        await app.whenStable()
-        expect(clientDocument.querySelector('#server-revenue svg')).toBe(svg)
-        expect(svg?.getAttribute('aria-label')).toBe('Updated server revenue')
-      } finally {
-        app.destroy()
-      }
-    } finally {
-      Reflect.set(globalThis, 'ngServerMode', serverMode)
-      for (const node of nodes) node.parentNode?.removeChild(node)
-    }
   })
 })
