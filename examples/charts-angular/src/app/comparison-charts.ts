@@ -1,6 +1,7 @@
 import { defineChart, dot, lineY, ruleY } from '@tanstack/charts'
 import { tooltip } from '@tanstack/charts/tooltip'
 import { portal } from '@tanstack/charts/tooltip/portal'
+import { canvasChartRenderer } from '@tanstack/charts/canvas'
 import type { ChartHostOptions } from '@tanstack/charts'
 import { scaleLinear } from 'd3-scale'
 
@@ -19,7 +20,10 @@ export const revenueData: readonly RevenueDatum[] = [
 ]
 
 // Framework-agnostic: both columns receive these exact definitions and rows.
-export function createRevenueChart(data: readonly RevenueDatum[]) {
+export function createRevenueChart(
+  data: readonly RevenueDatum[],
+  canvasDots = false,
+) {
   return defineChart({
     marks: [
       ruleY([0], { strokeOpacity: 0.2 }),
@@ -33,6 +37,7 @@ export function createRevenueChart(data: readonly RevenueDatum[]) {
       }),
       dot(data, {
         id: 'revenue-points',
+        renderer: canvasDots ? canvasChartRenderer : undefined,
         x: 'x',
         y: 'revenue',
         key: 'id',

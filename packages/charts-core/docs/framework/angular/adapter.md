@@ -50,10 +50,10 @@ height bindings override the component's default height; omit `options.height`
 and `aspectRatio` when CSS should control scene height. Explicit option
 dimensions still control scene geometry.
 
-The host owns layout, while the rendered SVG owns chart accessibility and
+The host owns layout, while the rendered surface owns chart accessibility and
 keyboard focus. Set `options.ariaLabel`, `options.ariaDescription`, and
 `options.tabIndex` for that surface. Native `aria-label` or `tabindex` attributes
-on the outer `div` do not forward to the SVG.
+on the outer `div` do not forward to the chart surface.
 
 Use immutable `options` updates. The input and template queries are signals;
 pure computed values derive layout and renderer options. A lazy getter creates
@@ -65,10 +65,41 @@ Server rendering serializes current options without mounting the browser runtime
 hydration adopts the server SVG and mark nodes.
 
 The options follow the [Chart reference](./reference/chart.md). Use native
-Angular class and style bindings on the host. `svgClass` applies to the rendered
-root SVG. Callback signal reads and operations on the `onRender` interaction
+Angular class and style bindings on the host. `className` applies to the renderer-owned
+surface: the SVG root for an SVG chart, or the layered root `div` for mixed
+SVG/Canvas marks. It does not style the internal mount container or each layer.
+Callback signal reads and operations on the `onRender` interaction
 controller run untracked, so a callback's incidental reads do not become
 dependencies of a calling effect.
+
+## Canvas marks
+
+`Chart` supports Canvas marks through the shared renderer composition. Import
+`canvasChartRenderer` from `@tanstack/charts/canvas` and assign it to the marks
+that should use Canvas:
+
+```ts
+import { dot } from '@tanstack/charts'
+import { canvasChartRenderer } from '@tanstack/charts/canvas'
+
+const points = dot(data, {
+  x: 'x',
+  y: 'y',
+  renderer: canvasChartRenderer,
+})
+```
+
+Include that mark in your existing definition's `marks` array. The component
+still uses SVG as the default renderer for other marks and guides. The core
+composes the SVG and Canvas layers, owns interaction, and prerenders a Canvas
+shell on the server; the browser paints its pixels after mounting.
+
+Angular currently exposes the SVG-default component, without dedicated
+`/angular/canvas` or `/angular/core` entries. React and Octane additionally
+offer those renderer entry points for a full Canvas default or an
+application-supplied renderer. The other web adapters, including Angular,
+support Canvas through per-mark composition. `renderSvg` only replaces SVG
+serialization; it is not a replacement for a `ChartRenderer` option.
 
 ## Events and callbacks
 
@@ -123,7 +154,7 @@ Exports: `Chart`, `ChartOptions`, `ChartCommonOptions`, `ChartPresentationOption
 
 Keep the `Chart` import and change `<tanstack-chart>` to
 `<div tanstack-chart>`. `ChartOptions` now describes the native-host component:
-move `class` and `style` onto the host and rename `className` to `svgClass`.
+move `class` and `style` onto the host and keep `className` for the rendered surface.
 `Chart.options` and `ChartTooltipBodyDirective.definition` are now read-only
 input signals when accessed through an instance; template bindings keep their
 names. See the [full comparison](./comparison.md) for before/after examples.

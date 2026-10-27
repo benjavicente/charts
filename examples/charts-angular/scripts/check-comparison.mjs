@@ -188,13 +188,61 @@ try {
     true,
     'Immutable updates must preserve hydrated SVG and mark nodes',
   )
+  await lifetime.getByRole('button', { name: 'Use Canvas dots' }).click()
+  const paintedCanvasLayers = () => {
+    const roots = [
+      ...document.querySelectorAll('[data-case="lifetime"] .ts-chart-layers'),
+    ]
+    return (
+      roots.length === 2 &&
+      roots.every((root) => {
+        const canvas = root.querySelector('.ts-chart-canvas__scene')
+        if (!canvas || !canvas.width || !canvas.height) return false
+        const context = canvas.getContext('2d')
+        if (!context) return false
+        const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+        return data.some((value, index) => index % 4 === 3 && value > 0)
+      })
+    )
+  }
+  await page.waitForFunction(paintedCanvasLayers)
+  const signalSurface = lifetime.locator(
+    '[data-adapter="signal"] .ts-chart-layers',
+  )
+  assert.equal(
+    await signalSurface.getAttribute('class'),
+    'ts-chart ts-chart-layers revenue-surface',
+  )
+  assert.ok((await signalSurface.locator('svg').count()) > 0)
+  assert.equal(await signalSurface.locator('svg.revenue-surface').count(), 0)
+  assert.equal(
+    await lifetime.locator('.ts-chart-host.revenue-surface').count(),
+    0,
+  )
+  await signalSurface.evaluate((element) => {
+    window.comparisonCanvasSurface = element
+  })
   await lifetime.getByRole('button', { name: 'Unmount both' }).click()
   await page.waitForFunction(
     () => document.querySelectorAll('svg').length === 6,
   )
+  assert.equal(await page.locator('canvas').count(), 0)
+  assert.equal(
+    await page.evaluate(() => window.comparisonCanvasSurface.isConnected),
+    false,
+  )
   await lifetime.getByRole('button', { name: 'Remount both' }).click()
+  await page.waitForFunction(paintedCanvasLayers)
+  await lifetime.getByRole('button', { name: 'Use SVG dots' }).click()
   await page.waitForFunction(
     () => document.querySelectorAll('svg').length === 8,
+  )
+  assert.equal(await page.locator('canvas').count(), 0)
+  assert.equal(
+    await lifetime
+      .locator('[data-adapter="signal"] svg.revenue-surface')
+      .count(),
+    1,
   )
   await page.getByRole('button', { name: 'Dark theme' }).click()
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark')
@@ -204,7 +252,7 @@ try {
   )
   assert.deepEqual(errors, [])
   console.log(
-    'Angular comparison passed: SSR hydration, both legacy bugs, native host styling, updates, remount, themes and mobile layout.',
+    'Angular comparison passed: SSR hydration, both legacy bugs, native host styling, className on SVG and Canvas layers, Canvas painting and cleanup, updates, remount, themes and mobile layout.',
   )
 } finally {
   await browser.close()

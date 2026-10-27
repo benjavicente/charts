@@ -47,14 +47,14 @@ class TooltipTypeTest {
 }
 void TooltipTypeTest
 
-// Host presentation belongs to native bindings, and SVG presentation has an explicit name.
+// Host presentation belongs to native bindings; className styles the rendered surface.
 function checkPresentation(options: ChartOptions<Datum, number, number>) {
-  options.svgClass = 'series-chart'
+  options.className = 'series-chart'
   // @ts-expect-error Host classes are native Angular bindings.
   options.class = 'host'
   // @ts-expect-error Host styles are native Angular bindings.
   options.style = 'height: 240px'
-  // @ts-expect-error Use svgClass for the root SVG.
-  options.className = 'surface'
+  // @ts-expect-error Surface classes keep the renderer-neutral core option name.
+  options.svgClass = 'surface'
 }
 void checkPresentation
