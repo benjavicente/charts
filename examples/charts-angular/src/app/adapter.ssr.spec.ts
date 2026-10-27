@@ -54,7 +54,50 @@ class AsyncServerChart extends ServerChart {
   }
 }
 
+@Component({
+  selector: 'hybrid-server-chart',
+  imports: [Chart],
+  template: '<div tanstack-chart [options]="options()"></div>',
+})
+class HybridServerChart extends ServerChart {
+  constructor() {
+    super()
+    this.options.update((options) => ({
+      ...options,
+      definition: createRevenueChart(revenueData, true),
+      className: 'hybrid-surface',
+    }))
+  }
+}
+
 describe('signal Angular SSR', () => {
+  it('prerenders Canvas marks with className on the layered surface', async () => {
+    browserMounts = 0
+    destroyPlatform()
+    const html = await renderApplication(
+      (context) =>
+        bootstrapApplication(
+          HybridServerChart,
+          {
+            providers: [
+              provideZonelessChangeDetection(),
+              provideServerRendering(),
+            ],
+          },
+          context,
+        ),
+      {
+        document:
+          '<!doctype html><html><body><hybrid-server-chart></hybrid-server-chart></body></html>',
+      },
+    )
+    expect(browserMounts).toBe(0)
+    expect(html).toContain('class="ts-chart ts-chart-layers hybrid-surface"')
+    expect(html).toContain('ts-chart-canvas__scene')
+    expect(html).toContain('<svg class="ts-chart"')
+    expect(html).not.toContain('<svg class="ts-chart hybrid-surface"')
+  })
+
   it('emits complete SVG without mounting the browser runtime', async () => {
     browserMounts = 0
     destroyPlatform()

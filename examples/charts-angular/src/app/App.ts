@@ -29,15 +29,18 @@ export class App {
   readonly hostHeight = signal(180)
   readonly expanded = signal(false)
   readonly updatedData = signal(false)
+  readonly canvasDots = signal(false)
   readonly visible = signal(true)
   readonly lifetimeOptions = computed(() => ({
     definition: createRevenueChart(
       this.updatedData()
         ? revenueData.map((row) => ({ ...row, revenue: row.revenue + 12 }))
         : revenueData,
+      this.canvasDots(),
     ),
     height: this.expanded() ? 320 : 240,
     ariaLabel: 'Reactive revenue',
+    className: 'revenue-surface',
   }))
 
   optionsFor(scenario: ComparisonCase) {

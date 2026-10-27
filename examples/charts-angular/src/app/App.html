@@ -82,6 +82,9 @@
           <button class="chart-control" (click)="toggleDimensions()">
             Change dimensions
           </button>
+          <button class="chart-control" (click)="canvasDots.set(!canvasDots())">
+            {{ canvasDots() ? 'Use SVG dots' : 'Use Canvas dots' }}
+          </button>
           <button class="chart-control" (click)="toggleVisible()">
             {{ visible() ? 'Unmount both' : 'Remount both' }}
           </button>

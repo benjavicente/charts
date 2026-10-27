@@ -17,7 +17,7 @@ release. There is one public chart component.
 | Template                 | `<tanstack-chart [options]="options()">`                                                       | `<div tanstack-chart [options]="options()">`                                                                         |
 | Host identity            | ID, classes and data attributes belong to the outer custom element; an inner `div` owns layout | One native `div` owns identity and layout                                                                            |
 | Host presentation        | `options.class` and string `options.style` style the inner host                                | Native `class`, `[class]`, `style` and `[style.*]` bindings style the host                                           |
-| SVG class                | `options.className`                                                                            | `options.svgClass`                                                                                                   |
+| Surface class            | `options.className`                                                                            | `options.className`, on the SVG root or mixed-renderer root `div`                                                    |
 | Component instance input | `chart.options` is a value                                                                     | `chart.options()` reads an input signal                                                                              |
 | Reactive updates         | `ngOnChanges` applies immutable option replacements                                            | Computed values derive options; a render effect applies browser updates after host bindings                          |
 | Notifications            | Four callbacks inside `options`                                                                | The callbacks plus optional `rendered`, `focusChange`, `focusGroupChange` and `pointSelect` outputs                  |
@@ -55,7 +55,7 @@ const options = signal<ChartOptions<RevenueDatum, number, number>>({
   ariaLabel: 'Revenue by month',
   class: 'revenue-chart',
   style: 'height: 240px',
-  className: 'revenue-svg',
+  className: 'revenue-surface',
   onFocusChange: (point) => selectedId.set(point?.datum?.id ?? null),
 })
 ```
@@ -74,7 +74,7 @@ import type { ChartOptions } from '@tanstack/charts/angular'
 const options = signal<ChartOptions<RevenueDatum, number, number>>({
   definition,
   ariaLabel: 'Revenue by month',
-  svgClass: 'revenue-svg',
+  className: 'revenue-surface',
   onFocusChange: (point) => selectedId.set(point?.datum?.id ?? null),
 })
 ```
@@ -95,7 +95,7 @@ that depended on the old outer element and inner `.ts-chart-host`: the native
 `div` is now `.ts-chart-host`. If CSS owns height, omit `options.height` and
 `aspectRatio`; explicit dimensions still control chart geometry.
 
-Chart accessibility belongs to the rendered SVG. Keep `ariaLabel`,
+Chart accessibility belongs to the rendered surface. Keep `ariaLabel`,
 `ariaDescription` and `tabIndex` inside `options`. An `aria-label` or `tabindex`
 on the native host applies to that host only.
 
@@ -160,9 +160,12 @@ it is absent from the package exports. The four rows demonstrate:
   selector, and its native height binding controls layout.
 - Immutable data and dimension updates, unmount and remount: both receive the
   same chart definitions, and the new adapter preserves its mounted lifetime
-  until destruction.
+  until destruction. The Canvas toggle renders the dots on Canvas while keeping
+  the line and guides in SVG, then exercises cleanup and renderer changes.
 
 The compiled tests cover outputs, tooltip updates and cleanup, native bindings,
-and server serialization. The production example prerenders in Node; its
-browser check pauses bootstrap, captures server SVG and mark nodes, and verifies
-that hydration and subsequent updates retain those exact nodes.
+and SVG/Canvas server serialization. The browser comparison also checks painted
+Canvas pixels, surface class ownership, switching renderers and unmount cleanup.
+The production example prerenders in Node; its browser check pauses bootstrap,
+captures server SVG and mark nodes, and verifies that hydration and subsequent
+updates retain those exact nodes.

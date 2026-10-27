@@ -510,12 +510,15 @@ describe('signal Angular adapter', () => {
     expect(host.controller()).toBe(controller)
   })
 
-  it('keeps native host styling separate from SVG classes and restores sizing defaults', async () => {
+  it('keeps native host styling separate from surface classes and restores sizing defaults', async () => {
     const fixture = await mount()
     const host = fixture.componentInstance
     const element: HTMLElement =
       fixture.nativeElement.querySelector('[tanstack-chart]')
-    host.options.update((options) => ({ ...options, svgClass: 'series-chart' }))
+    host.options.update((options) => ({
+      ...options,
+      className: 'series-chart',
+    }))
     await fixture.whenStable()
     const svg = element.querySelector('svg')
     expect(svg?.classList.contains('series-chart')).toBe(true)
@@ -524,7 +527,7 @@ describe('signal Angular adapter', () => {
     host.hostHeight.set(220)
     await fixture.whenStable()
     expect(element.style.height).toBe('220px')
-    host.options.update((options) => ({ ...options, svgClass: undefined }))
+    host.options.update((options) => ({ ...options, className: undefined }))
     await fixture.whenStable()
     expect(svg?.classList.contains('series-chart')).toBe(false)
     expect(element.style.height).toBe('220px')

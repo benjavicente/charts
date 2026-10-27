@@ -34,11 +34,11 @@ The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimatio
 | `onFocusGroupChange` | `(points: readonly ChartPoint[]) => void`    | None                  | Grouped focus callback                                              |
 | `onSelect`           | `(point: ChartPoint \| null) => void`        | None                  | Pointer or keyboard activation callback                             |
 | `onRender`           | `(context: ChartRenderContext) => void`      | None                  | Default SVG, complete surface, container, and scene after rendering |
-| `svgClass`           | `string`                                     | None                  | Extra class on the rendered root SVG                                |
+| `className`          | `string`                                     | None                  | Extra class on the rendered chart surface                           |
 
 Callbacks remain functions inside `options`. Replace the complete `options`
 value when chart state changes so `OnPush` change detection delivers a reactive
-input update. Chart accessibility options apply to the rendered SVG; native
+input update. Chart accessibility options apply to the rendered surface; native
 `aria-label` and `tabindex` attributes on the outer host apply only to that host.
 
 ## Outputs
@@ -84,11 +84,14 @@ in the chart definition.
 
 ## Exported types
 
-`ChartOptions` contains chart host options with `svgClass` for the
-root SVG. Host classes and styles use native Angular bindings.
+`ChartOptions` contains chart host options with `className` for the
+rendered surface: the SVG root or the root `div` of mixed SVG/Canvas layers.
+Host classes and styles use native Angular bindings. See
+[Canvas marks](../adapter.md#canvas-marks) for per-mark Canvas rendering and
+current renderer entry-point support.
 
 `ChartCommonOptions` contains the same options without `definition`.
-`ChartPresentationOptions` contains `svgClass`; host `class` and `style` use
+`ChartPresentationOptions` contains `className`; host `class` and `style` use
 native Angular bindings.
 
 The package also exports `ChartTooltipBodyDirective`,

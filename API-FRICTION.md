@@ -359,6 +359,7 @@ Each entry records:
 | F-319 | Angular dynamic component inputs required one update protocol | Application | resolved |
 | F-320 | Global pnpm migrated the workspace before dependency validation | Tooling | resolved |
 | F-321 | Angular signal queries reject ECMAScript private fields | Tooling | resolved |
+| F-322 | Angular Canvas mark support was undocumented | Documentation | resolved |
 
 ## Findings
 
@@ -9406,7 +9407,12 @@ Each entry records:
 - Decision: replace `Chart` with the signal-based `div[tanstack-chart]`
   implementation in the existing Angular entry so one native element owns
   identity and layout. Keep the `Chart` and `ChartOptions` names in this major
-  migration, use native class/style bindings, and name the SVG class `svgClass`.
+  migration, use native class/style bindings, and retain the core `className`
+  option for the rendered surface.
+  Source review exposed a concrete naming mismatch: `svgClass` was forwarded to
+  the core surface class, which already targets a layered div for mixed SVG/Canvas
+  charts and is cleared from individual SVG layers. Keeping `className` matches
+  Solid, Vue, Svelte, Lit and Alpine and removes the Angular-only remapping.
   Keep the historical implementation only in the comparison example. The tooltip
   definition binding still supplies template generic inference, but preserving
   its value-shaped instance property no longer justifies a decorator: use a
@@ -9424,7 +9430,10 @@ Each entry records:
   pass with only `Chart` exported. Strict Angular 20.0.0 compilation rejects an
   invalid tooltip datum property and a definition binding of the wrong type,
   confirming signal-input generic inference; valid templates and instance types
-  compile on Angular 20 and 22 without explicit standalone flags.
+  compile on Angular 20 and 22 without explicit standalone flags. Restoring
+  `className` passes all eleven compiled tests, including a mixed-renderer SSR
+  shell, and Chromium verifies the class on both SVG and layered roots,
+  without applying it to the host or individual SVG layers.
 
 ### F-317 - Signal Angular workspace sources bypassed the test compiler
 
@@ -9541,3 +9550,23 @@ Each entry records:
   ECMAScript-private fields.
 - Verification: all nine compiled browser and SSR adapter tests pass with the
   protected outlet query, including destruction before required queries are set.
+
+
+### F-322 - Angular Canvas mark support was undocumented
+
+- Status: resolved
+- Severity: low
+- Owner: Documentation
+- Observed in: reviewing surface class naming and comparing adapter Canvas support
+- Friction: the Angular guide described only SVG and omitted the existing
+  per-mark renderer composition. The lack of a dedicated Angular Canvas entry
+  therefore looked like a lack of Canvas support, despite the shared core
+  already composing Canvas marks with SVG guides and other marks.
+- Decision: document the `canvasChartRenderer` mark option and distinguish that
+  supported path from the dedicated Canvas-default and custom-renderer entries
+  available in React and Octane. Add a Canvas-dots toggle to the shared comparison
+  and exercise it in the existing browser workflow.
+- Verification: all eleven compiled Angular tests pass, including a Canvas SSR
+  shell with `className` on the layered root and no browser mount. Chromium
+  verifies painted Canvas pixels in both comparison adapters, SVG guides,
+  surface class ownership, renderer switching, remount and Canvas node cleanup.

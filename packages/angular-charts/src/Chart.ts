@@ -124,7 +124,6 @@ export class Chart<
     const options = this.options()
     const {
       renderSvg: _renderSvg,
-      svgClass,
       onRender,
       onFocusChange,
       onFocusGroupChange,
@@ -133,7 +132,6 @@ export class Chart<
     } = options
     return {
       ...hostOptions,
-      className: svgClass,
       idPrefix: options.idPrefix ?? this.#generatedId,
       renderer: this.#renderer(),
       onRender: (
