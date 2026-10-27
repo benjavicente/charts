@@ -1,5 +1,9 @@
 # Angular adapter size analysis
 
+These measurements describe the baseline before the subsequent output,
+dynamic-binding, and Angular 20 minimum changes. They have not been rerun for
+that follow-up and should not be treated as its bundle sizes.
+
 The signal-first `ChartComponent` is slightly larger than the deprecated `Chart` in this controlled production fixture. Its own adapter code is nearly the same size; most of the application-level increase comes from additional Angular runtime code. Exporting both components does not force consumers to bundle both.
 
 This is an analysis of the current implementation, including the ViewContainerRef cleanup. No production implementation or dependency changes were made for these measurements.

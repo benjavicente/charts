@@ -2,6 +2,7 @@ import { Component } from '@angular/core'
 import { ChartComponent } from './ChartComponent'
 import { ChartTooltipBodyDirective } from './ChartTooltipBody'
 import type { ChartComponentOptions } from './types'
+import type { ChartPoint, ChartRenderContext } from '@tanstack/charts'
 
 interface Datum {
   id: string
@@ -13,7 +14,14 @@ interface Datum {
   standalone: true,
   imports: [ChartComponent, ChartTooltipBodyDirective],
   template: `
-    <div tanstack-chart [options]="options">
+    <div
+      tanstack-chart
+      [options]="options"
+      (rendered)="onRender($event)"
+      (focusChange)="selectedId = $event?.datum?.id"
+      (focusGroupChange)="onGroup($event)"
+      (pointSelect)="selectedId = $event?.datum?.id"
+    >
       <ng-template [tanstackChartTooltipBody]="options.definition" let-tooltip>
         @if (tooltip.primaryPoint?.datum; as datum) {
           {{ datum.id }}
@@ -30,6 +38,13 @@ interface Datum {
 })
 class TooltipTypeTest {
   protected options!: ChartComponentOptions<Datum, number, number>
+  protected selectedId: string | undefined
+  protected onRender(context: ChartRenderContext<Datum, number, number>) {
+    context.scene.points[0]?.xValue.toFixed(2)
+  }
+  protected onGroup(points: readonly ChartPoint<Datum, number, number>[]) {
+    points[0]?.yValue.toFixed(2)
+  }
 }
 void TooltipTypeTest
 

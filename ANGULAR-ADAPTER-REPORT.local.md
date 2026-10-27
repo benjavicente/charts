@@ -1,5 +1,18 @@
 # Angular adapter modernization report
 
+This report records the baseline committed before the follow-up conventions
+review. The follow-up raises the Angular minimum to 20, adds four optional
+outputs while retaining callbacks, replaces the tooltip synchronization effect
+with dynamic input bindings, and moves hydration validation to a prerendered
+page in Chromium. The baseline's Angular 19 and implementation details below
+describe that earlier snapshot.
+
+Follow-up validation passes all ten compiled Angular 22 tests, the package build,
+repository typecheck, public callback inventory and documentation contract. An
+Angular 20.0.0 consumer compiles and links the built package and exercises both
+the browser tooltip/output lifecycle and Node SSR. Production prerendering and
+Chromium verify hydration node reuse without patching Angular's private state.
+
 This report describes the completed signal-first Angular implementation, its compatibility changes, and the checks performed. The new `ChartComponent` is exported from the existing Angular entry point alongside the deprecated `Chart`; consumers do not need a separate `signal-angular` entry point.
 
 ## Correctness fixes

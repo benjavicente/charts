@@ -37,9 +37,25 @@ The definition also owns `focus`, `focusRing`, `cursor`, `tooltip`, `svgAnimatio
 | `onRender`           | `(context: ChartRenderContext) => void`      | None                  | Default SVG, complete surface, container, and scene after rendering |
 | `svgClass`           | `string`                                     | None                  | Extra class on the rendered root SVG                                |
 
-Callbacks are functions inside `options`, not Angular outputs. Replace the
-complete `options` value when chart state changes so `OnPush` change detection
-delivers a reactive input update.
+Callbacks remain functions inside `options`. Replace the complete `options`
+value when chart state changes so `OnPush` change detection delivers a reactive
+input update. Chart accessibility options apply to the rendered SVG; native
+`aria-label` and `tabindex` attributes on the outer host apply only to that host.
+
+## Outputs
+
+`ChartComponent` exposes four optional Angular outputs alongside the callbacks:
+
+| Output             | Payload                 | Callback counterpart         |
+| ------------------ | ----------------------- | ---------------------------- |
+| `rendered`         | `ChartRenderContext`    | `options.onRender`           |
+| `focusChange`      | `ChartPoint \| null`    | `options.onFocusChange`      |
+| `focusGroupChange` | `readonly ChartPoint[]` | `options.onFocusGroupChange` |
+| `pointSelect`      | `ChartPoint \| null`    | `options.onSelect`           |
+
+If both forms are registered, the callback runs first and the output emits the
+same payload once. Value-producing callbacks such as `renderSvg` and tooltip
+formatters remain functions. The deprecated `Chart` has no new outputs.
 
 ## Tooltip body template
 

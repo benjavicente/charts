@@ -67,8 +67,7 @@
       "{workspaceRoot}/scripts/check-docs.mjs",
       "{workspaceRoot}/scripts/docs-contract.mjs",
       "{workspaceRoot}/scripts/packed-markdown-links.mjs",
-      "{workspaceRoot}/scripts/sync-package-docs.mjs",
-      "{workspaceRoot}/packages/angular-charts/signal-angular/src/**/*"
+      "{workspaceRoot}/scripts/sync-package-docs.mjs"
     ],
     "docsTest": [
       "docs",
