@@ -1,6 +1,6 @@
 import { Component } from '@angular/core'
 import { Chart } from './Chart'
-import { ChartTooltipBodyDirective } from './ChartTooltipBody'
+import { ChartTooltipBodyDirective } from './tooltip/chart-tooltip-body.directive'
 import type { ChartOptions } from './types'
 import type { ChartPoint, ChartRenderContext } from '@tanstack/charts'
 

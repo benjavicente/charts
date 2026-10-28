@@ -22,18 +22,17 @@ import type {
   ChartRendererHostOptions,
   ChartValue,
 } from '@tanstack/charts'
-import type { ChartTooltipBodyDirective } from './ChartTooltipBody'
+import type { ChartTooltipBodyDirective } from '../tooltip/chart-tooltip-body.directive'
 import { injectChartRendererAdapter } from './inject-chart-renderer-adapter'
-import { injectChartTooltipBody } from './inject-chart-tooltip-body'
-import type { ChartTooltipBody } from './chart-tooltip-body'
-import type { ChartServerRenderStrategy } from './chart-server-render'
+import { injectChartTooltipBody } from '../tooltip/inject-chart-tooltip-body'
+import type { ChartTooltipBodyComponent } from '../tooltip/chart-tooltip-body.component'
+import type { ChartServerRenderStrategy } from '../server/chart-server-render'
 
 @Injectable({ providedIn: 'root' })
 class ChartIdGenerator {
   readonly #appId = inject(APP_ID)
   #nextId = 0
 
-  // Secondary entry bundles can contain separate copies of this private service.
   next(namespace: string) {
     return `ts-chart-${namespace}-${this.#appId}-${++this.#nextId}`.replaceAll(
       /[^a-zA-Z0-9_-]/g,
@@ -54,7 +53,7 @@ export function injectChartHost<
   tooltipOutlet: () => ViewContainerRef
   tooltipDirective: () =>
     ChartTooltipBodyDirective<TDatum, TXValue, TYValue> | undefined
-  tooltipComponent: Type<ChartTooltipBody<TDatum, TXValue, TYValue>>
+  tooltipComponent: Type<ChartTooltipBodyComponent<TDatum, TXValue, TYValue>>
   idNamespace: string
   focusChange: OutputEmitterRef<ChartPoint<TDatum, TXValue, TYValue> | null>
   focusGroupChange: OutputEmitterRef<

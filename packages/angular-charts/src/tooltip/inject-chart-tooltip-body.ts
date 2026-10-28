@@ -12,8 +12,8 @@ import type {
   Type,
 } from '@angular/core'
 import type { ChartTooltipBodyTarget, ChartValue } from '@tanstack/charts'
-import type { ChartTooltipBody } from './chart-tooltip-body'
-import type { ChartTooltipBodyDirective } from './ChartTooltipBody'
+import type { ChartTooltipBodyComponent } from './chart-tooltip-body.component'
+import type { ChartTooltipBodyDirective } from './chart-tooltip-body.directive'
 
 export function injectChartTooltipBody<
   TDatum,
@@ -23,11 +23,11 @@ export function injectChartTooltipBody<
   container: () => ViewContainerRef,
   directive: () =>
     ChartTooltipBodyDirective<TDatum, TXValue, TYValue> | undefined,
-  bodyComponent: Type<ChartTooltipBody<TDatum, TXValue, TYValue>>,
+  bodyComponent: Type<ChartTooltipBodyComponent<TDatum, TXValue, TYValue>>,
 ) {
   let body:
     | {
-        ref: ComponentRef<ChartTooltipBody<TDatum, TXValue, TYValue>>
+        ref: ComponentRef<ChartTooltipBodyComponent<TDatum, TXValue, TYValue>>
         target: WritableSignal<ChartTooltipBodyTarget<TDatum, TXValue, TYValue>>
       }
     | undefined

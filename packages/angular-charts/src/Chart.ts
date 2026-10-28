@@ -19,11 +19,11 @@ import type {
   ChartRendererRenderContext,
   ChartValue,
 } from '@tanstack/charts'
-import { ChartTooltipBodyDirective } from './ChartTooltipBody'
-import { chartHostBindings, chartHostTemplate } from './chart-host'
-import { injectChartHost } from './inject-chart-host'
-import { CHART_SERVER_RENDER } from './chart-server-render'
-import { SvgChartTooltipBodyComponent } from './SvgChartTooltipBodyComponent'
+import { ChartTooltipBodyDirective } from './tooltip/chart-tooltip-body.directive'
+import { chartHostBindings, chartHostTemplate } from './host/chart-host'
+import { injectChartHost } from './host/inject-chart-host'
+import { CHART_SERVER_RENDER } from './server/chart-server-render'
+import { ChartTooltipBodyComponent } from './tooltip/chart-tooltip-body.component'
 import type { ChartOptions } from './types'
 
 @Component({
@@ -82,7 +82,7 @@ export class Chart<
     surface: this.surface,
     tooltipOutlet: this.tooltipOutlet,
     tooltipDirective: this.tooltipBodyDirective,
-    tooltipComponent: SvgChartTooltipBodyComponent<TDatum, TXValue, TYValue>,
+    tooltipComponent: ChartTooltipBodyComponent<TDatum, TXValue, TYValue>,
     idNamespace: 'svg',
     focusChange: this.focusChange,
     focusGroupChange: this.focusGroupChange,

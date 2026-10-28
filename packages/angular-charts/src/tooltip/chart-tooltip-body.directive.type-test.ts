@@ -1,7 +1,7 @@
 import { Component } from '@angular/core'
-import type { ChartOptions } from './types'
-import { Chart } from './Chart'
-import { ChartTooltipBodyDirective } from './ChartTooltipBody'
+import type { ChartOptions } from '../types'
+import { Chart } from '../Chart'
+import { ChartTooltipBodyDirective } from './chart-tooltip-body.directive'
 import type { ChartDefinition } from '@tanstack/charts'
 
 interface Datum {

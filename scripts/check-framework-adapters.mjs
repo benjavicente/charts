@@ -18,10 +18,7 @@ import { build as viteBuild } from 'vite'
 import solid from 'vite-plugin-solid'
 import { validatePackedMarkdownLinks } from './packed-markdown-links.mjs'
 import { runWithConcurrency } from './run-with-concurrency.mjs'
-import {
-  finalizeAngularPackage,
-  verifyAngularPackage,
-} from './angular-package.mjs'
+import { verifyAngularPackage } from './angular-package.mjs'
 
 const execFileAsync = promisify(execFile)
 const root = resolve(import.meta.dirname, '..')
@@ -157,20 +154,7 @@ async function buildSveltePackage() {
 }
 
 async function buildAngularPackage() {
-  await runPnpm(
-    [
-      '--filter',
-      '@tanstack/angular-charts',
-      'exec',
-      'ng-packagr',
-      '-p',
-      'ng-package.json',
-      '-c',
-      'tsconfig.lib.json',
-    ],
-    root,
-  )
-  await finalizeAngularPackage(resolve(root, 'packages/angular-charts'))
+  await runPnpm(['--filter', '@tanstack/angular-charts', 'build'], root)
 }
 
 async function buildDeclarations(packageRoot) {

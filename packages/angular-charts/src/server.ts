@@ -1,1 +1,1 @@
-export { provideChartsServerRendering } from './provide-charts-server-rendering'
+export { provideChartsServerRendering } from './server/provide-charts-server-rendering'

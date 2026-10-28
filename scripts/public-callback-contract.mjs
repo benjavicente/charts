@@ -616,11 +616,11 @@ const callbackInventory = {
     ['@tanstack/angular-charts:src/Chart.ts:Chart', 'options'],
     ['@tanstack/angular-charts:src/CanvasChart.ts:CanvasChart', 'options'],
     [
-      '@tanstack/angular-charts:src/chart-server-render.ts:ChartServerRenderStrategy',
+      '@tanstack/angular-charts:src/server/chart-server-render.ts:ChartServerRenderStrategy',
       '$call $call.render',
     ],
     [
-      '@tanstack/angular-charts:src/ChartTooltipBody.ts:ChartTooltipBodyDirective',
+      '@tanstack/angular-charts:src/tooltip/chart-tooltip-body.directive.ts:ChartTooltipBodyDirective',
       'definition ngTemplateContextGuard',
     ],
     [

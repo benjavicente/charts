@@ -1,6 +1,6 @@
 import { Directive, TemplateRef, inject, input } from '@angular/core'
 import type { ChartDefinition, ChartValue } from '@tanstack/charts'
-import type { ChartTooltipBodyTemplateContext } from './types'
+import type { ChartTooltipBodyTemplateContext } from '../types'
 
 @Directive({
   selector: 'ng-template[tanstackChartTooltipBody]',

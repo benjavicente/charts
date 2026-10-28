@@ -17,13 +17,11 @@ import type {
   ChartRendererRenderContext,
   ChartValue,
 } from '@tanstack/charts'
-import {
-  ChartTooltipBodyDirective,
-  CHART_SERVER_RENDER,
-} from '@tanstack/angular-charts'
-import { chartHostBindings, chartHostTemplate } from './chart-host'
-import { injectChartHost } from './inject-chart-host'
-import { CanvasChartTooltipBodyComponent } from './CanvasChartTooltipBodyComponent'
+import { ChartTooltipBodyDirective } from './tooltip/chart-tooltip-body.directive'
+import { CHART_SERVER_RENDER } from './server/chart-server-render'
+import { chartHostBindings, chartHostTemplate } from './host/chart-host'
+import { injectChartHost } from './host/inject-chart-host'
+import { ChartTooltipBodyComponent } from './tooltip/chart-tooltip-body.component'
 import type { CanvasChartOptions as ChartOptions } from './canvas-types'
 
 @Component({
@@ -71,7 +69,7 @@ export class CanvasChart<
     surface: this.surface,
     tooltipOutlet: this.tooltipOutlet,
     tooltipDirective: this.tooltipBodyDirective,
-    tooltipComponent: CanvasChartTooltipBodyComponent<TDatum, TXValue, TYValue>,
+    tooltipComponent: ChartTooltipBodyComponent<TDatum, TXValue, TYValue>,
     idNamespace: 'canvas',
     focusChange: this.focusChange,
     focusGroupChange: this.focusGroupChange,

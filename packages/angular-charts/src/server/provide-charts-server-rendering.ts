@@ -8,8 +8,8 @@ import {
 } from '@angular/core'
 import type { EnvironmentProviders } from '@angular/core'
 import { BEFORE_APP_SERIALIZED } from '@angular/platform-server'
-import { CHART_SERVER_RENDER } from '@tanstack/angular-charts'
-import type { ChartServerRenderStrategy } from '@tanstack/angular-charts'
+import { CHART_SERVER_RENDER } from './chart-server-render'
+import type { ChartServerRenderStrategy } from './chart-server-render'
 
 @Injectable()
 class ChartSerializationQueue {

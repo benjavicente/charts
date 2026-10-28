@@ -1,7 +1,7 @@
 export { Chart } from './Chart'
-export { ChartTooltipBodyDirective } from './ChartTooltipBody'
-export { CHART_SERVER_RENDER } from './chart-server-render'
-export type { ChartServerRenderStrategy } from './chart-server-render'
+export { ChartTooltipBodyDirective } from './tooltip/chart-tooltip-body.directive'
+export { CHART_SERVER_RENDER } from './server/chart-server-render'
+export type { ChartServerRenderStrategy } from './server/chart-server-render'
 export type {
   ChartCommonOptions,
   ChartOptions,
