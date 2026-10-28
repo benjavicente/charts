@@ -1,0 +1,978 @@
+{
+  "currentHead": "6d417fbd34432f32358fa2495540425388e6973d",
+  "purpose": "Read-only production architecture review with another Sol agent; diagnostic measurements, no production optimization applied.",
+  "method": {
+    "browser": "Production Angular AOT fixtures rebuilt with source maps. Google Chrome channel, 1280x800, DPR1, no throttling. Six warm-up updates, 30 traced updates per cell. Definitions precomputed; ApplicationRef.tick and forced layout. CDP Tracing plus V8 CPU profiler at 1ms sampling. Only user-timing update intervals included.",
+    "attribution": "CPU samples assigned to the nearest source-mapped frame, including native descendants. Percentages are diagnostic sample attribution, not exact timings or guaranteed savings. Small negative V8 clock adjustments have zero weight. Timeline event durations overlap CPU categories and must not be added to them.",
+    "controls": "Same-page untraced focusRing false control: two warm-up blocks, five alternating measured blocks with twelve updates each per mode. Changes semantics; diagnostic upper bound only. Exact DOM counts retained.",
+    "ssr": "Counted wrapper around default renderChartSvg. All modes schedule one pending task. None leaves options unchanged; callback replaces onFocusChange only; data changes the definition. Three warm-ups and twenty measured renderApplication requests per mode, alternating order, GC outside timing. Callback SVG equals baseline; data SVG differs. Probe timings are not directly comparable to the earlier benchmark.",
+    "chromeTool": "Chrome Performance tool also recorded the responsive dashboard and reported a ForcedReflow insight (37 ms total across 10 updates). Tool export rejected the active workspace, so inspectable raw artifacts were collected with CDP.",
+    "limitations": "Profiler overhead and Chrome 156 differ from the earlier Chromium 151 benchmark. Do not compare absolute profile durations with the earlier timings. Sampling can miss short Angular adapter functions. No optimized production variant has been implemented or benchmarked."
+  },
+  "browser": {
+    "date": "2026-10-28T11:00:34.861Z",
+    "browser": "156.0.8078.48",
+    "results": [
+      {
+        "name": "svg-10000",
+        "variant": "current",
+        "points": 10000,
+        "charts": 1,
+        "samples": {
+          "milliseconds": [
+            119.1, 118.4, 117.1, 123.6, 117.5, 119.5, 115.2, 117.9, 121.1, 117,
+            115.7, 116.6, 139.6, 124.3, 117.1, 118.5, 113.8, 112.4, 112.4,
+            112.4, 115.4, 113.1, 112.5, 116, 138.7, 125.2, 116.7, 112.8, 118.5,
+            116.7
+          ],
+          "points": 20000,
+          "defaultFocusCandidates": 20000
+        },
+        "median": 117.05,
+        "timeline": {
+          "MinorGC": {
+            "milliseconds": 95.648,
+            "count": 36
+          },
+          "ParseHTML": {
+            "milliseconds": 419.005,
+            "count": 60
+          },
+          "UpdateLayoutTree": {
+            "milliseconds": 311.104,
+            "count": 30
+          },
+          "Layout": {
+            "milliseconds": 30.837,
+            "count": 30
+          },
+          "MajorGC": {
+            "milliseconds": 22.16,
+            "count": 2
+          }
+        },
+        "sampledMilliseconds": {
+          "Other/native": 510.804,
+          "Chart core": 2995.974,
+          "Angular framework": 5.053
+        },
+        "topFiles": [
+          ["packages/charts-core/src/reconcile.ts", 1507.766],
+          ["packages/charts-core/src/resolved-layout-position.ts", 710.499],
+          ["getBoundingClientRect", 299.22],
+          ["packages/charts-core/src/svg-renderer.ts", 213.377],
+          ["packages/charts-core/src/scene.ts", 187.221],
+          ["packages/charts-core/src/mark.ts", 148.405],
+          ["(garbage collector)", 127.927],
+          ["packages/charts-core/src/line.ts", 75.918],
+          ["packages/charts-core/src/dot.ts", 64.875],
+          ["(program)", 38.982],
+          ["packages/charts-core/src/scales.ts", 38.648],
+          ["packages/charts-core/src/markup-internal.ts", 26.553],
+          [
+            "../../../../node_modules/.pnpm/d3-scale@4.0.2/node_modules/d3-scale/src/continuous.js",
+            23.621
+          ],
+          [
+            "../../../../node_modules/.pnpm/d3-interpolate@3.0.1/node_modules/d3-interpolate/src/number.js",
+            17.619
+          ],
+          ["packages/charts-core/src/renderer.ts", 10.116]
+        ],
+        "topFunctions": [
+          [
+            "packages/charts-core/src/reconcile.ts:159 (syncAttributes)",
+            550.751
+          ],
+          [
+            "packages/charts-core/src/reconcile.ts:36 (reconcileChartSvg)",
+            462.624
+          ],
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:83 (row)",
+            375.228
+          ],
+          [
+            "packages/charts-core/src/reconcile.ts:86 (reconcileElement)",
+            355.13
+          ],
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:69 (projectLayoutAxis)",
+            335.271
+          ],
+          ["getBoundingClientRect", 299.22],
+          ["(garbage collector)", 127.927],
+          ["packages/charts-core/src/svg-renderer.ts:88 (renderNode)", 116.938],
+          ["packages/charts-core/src/mark.ts:236 ()", 83.164],
+          ["packages/charts-core/src/reconcile.ts:343 (child)", 71.884],
+          ["packages/charts-core/src/line.ts:269 (render)", 52.557],
+          ["packages/charts-core/src/scene.ts:356 ()", 45.051],
+          ["packages/charts-core/src/svg-renderer.ts:158 (pointsPath)", 42.52],
+          [
+            "packages/charts-core/src/svg-renderer.ts:200 (renderStyle)",
+            39.015
+          ],
+          ["(program)", 38.982]
+        ]
+      },
+      {
+        "name": "svg-10000-no-focus-ring",
+        "variant": "current",
+        "points": 10000,
+        "charts": 1,
+        "noFocusRing": true,
+        "samples": {
+          "milliseconds": [
+            117.7, 116.3, 115.6, 113.7, 117.5, 113, 119.1, 112.7, 138.9, 123.3,
+            113.2, 113.3, 113.3, 112, 111.2, 110.1, 120.3, 111.8, 112, 113.5,
+            119, 114.1, 114.2, 114.9, 113.7, 146.6, 126, 113, 110.5, 114.2
+          ],
+          "points": 20000,
+          "defaultFocusCandidates": 0
+        },
+        "median": 113.9,
+        "timeline": {
+          "MinorGC": {
+            "milliseconds": 75.561,
+            "count": 35
+          },
+          "ParseHTML": {
+            "milliseconds": 430.779,
+            "count": 60
+          },
+          "UpdateLayoutTree": {
+            "milliseconds": 310.023,
+            "count": 30
+          },
+          "Layout": {
+            "milliseconds": 29.687,
+            "count": 30
+          },
+          "MajorGC": {
+            "milliseconds": 25.425,
+            "count": 2
+          }
+        },
+        "sampledMilliseconds": {
+          "Other/native": 516.308,
+          "Chart core": 2942.151,
+          "Angular framework": 3.791,
+          "Angular adapter": 2.538
+        },
+        "topFiles": [
+          ["packages/charts-core/src/reconcile.ts", 1512.28],
+          ["packages/charts-core/src/resolved-layout-position.ts", 693.424],
+          ["getBoundingClientRect", 301.358],
+          ["packages/charts-core/src/svg-renderer.ts", 220.709],
+          ["packages/charts-core/src/scene.ts", 183.942],
+          ["packages/charts-core/src/mark.ts", 141.818],
+          ["(garbage collector)", 109.812],
+          ["packages/charts-core/src/dot.ts", 61.5],
+          ["packages/charts-core/src/line.ts", 53.803],
+          ["(program)", 38.577],
+          ["packages/charts-core/src/scales.ts", 38.156],
+          [
+            "../../../../node_modules/.pnpm/d3-scale@4.0.2/node_modules/d3-scale/src/continuous.js",
+            33.338
+          ],
+          [
+            "../../../../node_modules/.pnpm/d3-interpolate@3.0.1/node_modules/d3-interpolate/src/number.js",
+            24.777
+          ],
+          ["packages/charts-core/src/markup-internal.ts", 23.918],
+          ["packages/charts-core/src/configured-scale.ts", 5.024]
+        ],
+        "topFunctions": [
+          [
+            "packages/charts-core/src/reconcile.ts:159 (syncAttributes)",
+            553.756
+          ],
+          [
+            "packages/charts-core/src/reconcile.ts:36 (reconcileChartSvg)",
+            474.561
+          ],
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:83 (row)",
+            453.622
+          ],
+          [
+            "packages/charts-core/src/reconcile.ts:86 (reconcileElement)",
+            348.215
+          ],
+          ["getBoundingClientRect", 301.358],
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:69 (projectLayoutAxis)",
+            238.519
+          ],
+          ["packages/charts-core/src/svg-renderer.ts:88 (renderNode)", 134.464],
+          ["(garbage collector)", 109.812],
+          ["packages/charts-core/src/mark.ts:236 ()", 79.439],
+          ["packages/charts-core/src/reconcile.ts:343 (child)", 72.831],
+          ["packages/charts-core/src/scene.ts:356 ()", 60.268],
+          ["packages/charts-core/src/scene.ts:373 (point)", 45.31],
+          ["(program)", 38.577],
+          ["packages/charts-core/src/scales.ts:184 (valueKey)", 38.156],
+          ["packages/charts-core/src/svg-renderer.ts:158 (pointsPath)", 37.964]
+        ]
+      },
+      {
+        "name": "canvas-10000",
+        "variant": "canvas",
+        "points": 10000,
+        "charts": 1,
+        "samples": {
+          "milliseconds": [
+            54.5, 50.5, 49, 50.6, 51.9, 50.4, 50.2, 50, 50.2, 49.9, 53, 49.7,
+            49.9, 49.9, 53.3, 58.3, 52.7, 48.3, 48.9, 48.4, 49.9, 49.1, 49.7,
+            51, 49.6, 49.7, 49, 48.8, 49.1, 49
+          ],
+          "points": 20000,
+          "defaultFocusCandidates": 20000
+        },
+        "median": 49.9,
+        "timeline": {
+          "MinorGC": {
+            "milliseconds": 70.793,
+            "count": 31
+          },
+          "UpdateLayoutTree": {
+            "milliseconds": 1.46,
+            "count": 60
+          },
+          "MajorGC": {
+            "milliseconds": 2.909,
+            "count": 1
+          }
+        },
+        "sampledMilliseconds": {
+          "Other/native": 137.218,
+          "Chart core": 1342.602,
+          "Angular framework": 2.778,
+          "Angular adapter": 0
+        },
+        "topFiles": [
+          ["packages/charts-core/src/resolved-layout-position.ts", 703.686],
+          ["packages/charts-core/src/scene.ts", 192.949],
+          ["packages/charts-core/src/mark.ts", 138.981],
+          ["packages/charts-core/src/canvas.ts", 94.212],
+          ["packages/charts-core/src/line.ts", 87.164],
+          ["(garbage collector)", 77.763],
+          ["packages/charts-core/src/dot.ts", 60.354],
+          ["packages/charts-core/src/scales.ts", 50.35],
+          [
+            "../../../../node_modules/.pnpm/d3-scale@4.0.2/node_modules/d3-scale/src/continuous.js",
+            25.122
+          ],
+          ["(program)", 19.25],
+          [
+            "../../../../node_modules/.pnpm/d3-interpolate@3.0.1/node_modules/d3-interpolate/src/number.js",
+            12.492
+          ],
+          ["packages/charts-core/src/renderer.ts", 7.35],
+          ["packages/charts-core/src/configured-scale.ts", 5.027],
+          ["packages/charts-core/src/guide-layout.ts", 2.529],
+          ["packages/core/src/render3/reactivity/after_render_effect.ts", 1.443]
+        ],
+        "topFunctions": [
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:83 (row)",
+            666.03
+          ],
+          ["packages/charts-core/src/mark.ts:236 ()", 93.452],
+          ["(garbage collector)", 77.763],
+          ["packages/charts-core/src/canvas.ts:1320 (paintDotRun)", 50.51],
+          ["packages/charts-core/src/scales.ts:184 (valueKey)", 47.837],
+          ["packages/charts-core/src/scene.ts:373 (point)", 45.779],
+          ["packages/charts-core/src/line.ts:269 (render)", 45.012],
+          ["packages/charts-core/src/scene.ts:786 (children)", 40.756],
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:69 (projectLayoutAxis)",
+            37.656
+          ],
+          ["packages/charts-core/src/scene.ts:356 ()", 37.206],
+          ["packages/charts-core/src/mark.ts:165 (channelValues)", 24.673],
+          ["packages/charts-core/src/dot.ts:151 ()", 21.313],
+          ["packages/charts-core/src/dot.ts:214 (position)", 20.946],
+          ["packages/charts-core/src/scene.ts:559 (point)", 20.46],
+          ["packages/charts-core/src/line.ts:223 ()", 20.091]
+        ]
+      },
+      {
+        "name": "canvas-10000-no-focus-ring",
+        "variant": "canvas",
+        "points": 10000,
+        "charts": 1,
+        "noFocusRing": true,
+        "samples": {
+          "milliseconds": [
+            54.7, 56, 49.4, 49.2, 51.2, 44.9, 47.5, 47.3, 47.5, 47.8, 48.3,
+            47.8, 47.7, 47.6, 47.8, 47.5, 48.2, 47.3, 47.7, 47.7, 47.8, 47.7,
+            47.6, 60.7, 60.5, 49.3, 48.3, 47.4, 47.5, 47.7
+          ],
+          "points": 20000,
+          "defaultFocusCandidates": 0
+        },
+        "median": 47.75,
+        "timeline": {
+          "MinorGC": {
+            "milliseconds": 61.727,
+            "count": 29
+          },
+          "UpdateLayoutTree": {
+            "milliseconds": 1.413,
+            "count": 60
+          },
+          "MajorGC": {
+            "milliseconds": 7.382,
+            "count": 2
+          }
+        },
+        "sampledMilliseconds": {
+          "Other/native": 131.848,
+          "Chart core": 1315.079,
+          "Angular framework": 0
+        },
+        "topFiles": [
+          ["packages/charts-core/src/resolved-layout-position.ts", 706.028],
+          ["packages/charts-core/src/scene.ts", 178.34],
+          ["packages/charts-core/src/mark.ts", 149.587],
+          ["packages/charts-core/src/canvas.ts", 96.737],
+          ["(garbage collector)", 80.193],
+          ["packages/charts-core/src/dot.ts", 69.904],
+          ["packages/charts-core/src/line.ts", 69.584],
+          ["packages/charts-core/src/scales.ts", 27.604],
+          [
+            "../../../../node_modules/.pnpm/d3-scale@4.0.2/node_modules/d3-scale/src/continuous.js",
+            19.908
+          ],
+          [
+            "../../../../node_modules/.pnpm/d3-interpolate@3.0.1/node_modules/d3-interpolate/src/number.js",
+            16.321
+          ],
+          ["(program)", 15.082],
+          ["packages/charts-core/src/renderer.ts", 9.037],
+          ["packages/charts-core/src/configured-scale.ts", 8.258],
+          ["mark", 0.344],
+          ["packages/core/src/util/callback_scheduler.ts", 0]
+        ],
+        "topFunctions": [
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:83 (row)",
+            649.149
+          ],
+          ["packages/charts-core/src/mark.ts:236 ()", 92.094],
+          ["(garbage collector)", 80.193],
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:69 (projectLayoutAxis)",
+            56.879
+          ],
+          ["packages/charts-core/src/line.ts:269 (render)", 51.326],
+          ["packages/charts-core/src/canvas.ts:1320 (paintDotRun)", 49.099],
+          ["packages/charts-core/src/scene.ts:373 (point)", 42.842],
+          ["packages/charts-core/src/scene.ts:786 (children)", 35.803],
+          ["packages/charts-core/src/dot.ts:214 (position)", 31.314],
+          ["packages/charts-core/src/mark.ts:165 (channelValues)", 26.574],
+          ["packages/charts-core/src/scales.ts:184 (valueKey)", 26.344],
+          ["packages/charts-core/src/scene.ts:356 ()", 24.475],
+          [
+            "packages/charts-core/src/scene.ts:294 (createChartSceneWithScaleResolver)",
+            24.23
+          ],
+          ["packages/charts-core/src/scene.ts:611 (register)", 22.36],
+          [
+            "packages/charts-core/src/scene.ts:832 (collectPositionScaleChannels)",
+            20.102
+          ]
+        ]
+      },
+      {
+        "name": "dashboard-fixed",
+        "variant": "current",
+        "points": 100,
+        "charts": 20,
+        "samples": {
+          "milliseconds": [
+            33, 34.6, 34.1, 32.6, 31.2, 32.8, 32.1, 30.6, 32.4, 33.5, 41, 33,
+            32, 31.4, 31.8, 31.2, 29.9, 31.5, 32.3, 33.2, 34.7, 30.4, 31.1,
+            33.2, 30.6, 38.6, 32.8, 30.5, 31.8, 30.1
+          ],
+          "points": 200,
+          "defaultFocusCandidates": 200
+        },
+        "median": 32.2,
+        "timeline": {
+          "ParseHTML": {
+            "milliseconds": 125.393,
+            "count": 1161
+          },
+          "UpdateLayoutTree": {
+            "milliseconds": 68.806,
+            "count": 600
+          },
+          "Layout": {
+            "milliseconds": 9.353,
+            "count": 30
+          },
+          "MinorGC": {
+            "milliseconds": 17.409,
+            "count": 15
+          },
+          "MajorGC": {
+            "milliseconds": 4.494,
+            "count": 2
+          }
+        },
+        "sampledMilliseconds": {
+          "Other/native": 56.128,
+          "Chart core": 886.679,
+          "Angular framework": 1.498,
+          "Angular adapter": 1.715,
+          "Harness": 0.035
+        },
+        "topFiles": [
+          ["packages/charts-core/src/reconcile.ts", 413.304],
+          ["packages/charts-core/src/resolved-layout-position.ts", 136.93],
+          ["packages/charts-core/src/dom-text.ts", 69.062],
+          ["packages/charts-core/src/scene.ts", 63.912],
+          ["packages/charts-core/src/mark.ts", 44.762],
+          ["packages/charts-core/src/svg-renderer.ts", 42.607],
+          ["packages/charts-core/src/guide-layout.ts", 37.589],
+          ["(garbage collector)", 25.182],
+          ["packages/charts-core/src/markup-internal.ts", 23.832],
+          ["packages/charts-core/src/line.ts", 16.366],
+          ["packages/charts-core/src/dot.ts", 14.317],
+          ["packages/charts-core/src/configured-scale.ts", 8.813],
+          [
+            "../../../../node_modules/.pnpm/d3-scale@4.0.2/node_modules/d3-scale/src/continuous.js",
+            8.806
+          ],
+          ["(program)", 8.802],
+          ["packages/charts-core/src/scales.ts", 6.282]
+        ],
+        "topFunctions": [
+          [
+            "packages/charts-core/src/reconcile.ts:36 (reconcileChartSvg)",
+            137.04
+          ],
+          [
+            "packages/charts-core/src/reconcile.ts:159 (syncAttributes)",
+            134.082
+          ],
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:83 (row)",
+            130.616
+          ],
+          [
+            "packages/charts-core/src/reconcile.ts:86 (reconcileElement)",
+            109.455
+          ],
+          ["packages/charts-core/src/dom-text.ts:71 (readFontStyle)", 65.276],
+          [
+            "packages/charts-core/src/guide-layout.ts:93 (measureSceneLabelBounds)",
+            30.024
+          ],
+          ["(garbage collector)", 25.182],
+          [
+            "packages/charts-core/src/svg-renderer.ts:187 (renderCommon)",
+            22.367
+          ],
+          ["packages/charts-core/src/reconcile.ts:343 (child)", 20.163],
+          ["packages/charts-core/src/markup-internal.ts:1 (number)", 20.066],
+          ["packages/charts-core/src/scene.ts:1847 ()", 18.708],
+          ["packages/charts-core/src/mark.ts:236 ()", 18.342],
+          ["packages/charts-core/src/reconcile.ts:333 (indexChildren)", 11.3],
+          ["packages/charts-core/src/line.ts:269 (render)", 8.806],
+          ["(program)", 8.802]
+        ]
+      },
+      {
+        "name": "dashboard-responsive",
+        "variant": "current",
+        "points": 100,
+        "charts": 20,
+        "responsive": true,
+        "samples": {
+          "milliseconds": [
+            33.1, 34.4, 33.6, 33.3, 31.3, 33.2, 33, 30.9, 32.4, 34.7, 39.8,
+            33.1, 32.1, 31.6, 32.6, 31.5, 30, 31.8, 33.6, 33.1, 33.2, 30.5, 31,
+            32.8, 30.3, 34, 39.1, 31.2, 31.1, 31.5
+          ],
+          "points": 200,
+          "defaultFocusCandidates": 200
+        },
+        "median": 32.7,
+        "timeline": {
+          "ParseHTML": {
+            "milliseconds": 127.1,
+            "count": 1170
+          },
+          "UpdateLayoutTree": {
+            "milliseconds": 68.601,
+            "count": 600
+          },
+          "Layout": {
+            "milliseconds": 9.375,
+            "count": 30
+          },
+          "MinorGC": {
+            "milliseconds": 18.655,
+            "count": 16
+          },
+          "MajorGC": {
+            "milliseconds": 5.046,
+            "count": 2
+          }
+        },
+        "sampledMilliseconds": {
+          "Other/native": 66.677,
+          "Chart core": 874.936,
+          "Angular framework": 1.448,
+          "Angular adapter": 4.019,
+          "Harness": 1.284
+        },
+        "topFiles": [
+          ["packages/charts-core/src/reconcile.ts", 403.647],
+          ["packages/charts-core/src/resolved-layout-position.ts", 148.509],
+          ["packages/charts-core/src/scene.ts", 65.008],
+          ["packages/charts-core/src/dom-text.ts", 56.844],
+          ["packages/charts-core/src/svg-renderer.ts", 40.305],
+          ["packages/charts-core/src/guide-layout.ts", 38.999],
+          ["packages/charts-core/src/mark.ts", 38.803],
+          ["(garbage collector)", 25.61],
+          ["packages/charts-core/src/markup-internal.ts", 23.515],
+          ["packages/charts-core/src/dot.ts", 17.61],
+          ["packages/charts-core/src/line.ts", 16.321],
+          [
+            "../../../../node_modules/.pnpm/d3-scale@4.0.2/node_modules/d3-scale/src/continuous.js",
+            15.077
+          ],
+          ["(program)", 8.836],
+          ["packages/charts-core/src/configured-scale.ts", 7.791],
+          ["packages/charts-core/src/renderer.ts", 7.555]
+        ],
+        "topFunctions": [
+          [
+            "packages/charts-core/src/reconcile.ts:159 (syncAttributes)",
+            141.819
+          ],
+          [
+            "packages/charts-core/src/resolved-layout-position.ts:83 (row)",
+            140.926
+          ],
+          [
+            "packages/charts-core/src/reconcile.ts:36 (reconcileChartSvg)",
+            140.148
+          ],
+          [
+            "packages/charts-core/src/reconcile.ts:86 (reconcileElement)",
+            91.436
+          ],
+          ["packages/charts-core/src/dom-text.ts:71 (readFontStyle)", 54.336],
+          [
+            "packages/charts-core/src/guide-layout.ts:93 (measureSceneLabelBounds)",
+            32.738
+          ],
+          ["(garbage collector)", 25.61],
+          ["packages/charts-core/src/mark.ts:236 ()", 20.733],
+          ["packages/charts-core/src/markup-internal.ts:1 (number)", 18.488],
+          ["packages/charts-core/src/svg-renderer.ts:88 (renderNode)", 16.358],
+          ["packages/charts-core/src/reconcile.ts:343 (child)", 15.103],
+          ["packages/charts-core/src/reconcile.ts:333 (indexChildren)", 13.883],
+          ["packages/charts-core/src/scene.ts:1847 ()", 12.591],
+          [
+            "packages/charts-core/src/svg-renderer.ts:229 (renderAttribute)",
+            10.101
+          ],
+          ["packages/charts-core/src/scene.ts:559 (point)", 10.075]
+        ]
+      }
+    ],
+    "controls": [
+      {
+        "variant": "current",
+        "samples": {
+          "normal": [
+            108.8, 111.6, 127.7, 112.1, 111.6, 109.9, 109.2, 109, 129.5, 116.5,
+            111.5, 108.9, 111.7, 108.7, 108.6, 130.6, 116.5, 111.2, 108.2,
+            110.3, 110, 108.5, 129.6, 117.3, 111.2, 109.2, 108.1, 128.8, 116.4,
+            110, 107.7, 110.5, 110.2, 108.1, 130.9, 115.6, 111.4, 108.1, 110.1,
+            109.2, 109.7, 107.6, 134.2, 118, 110.3, 109.3, 111, 108.1, 109.9,
+            116.9, 135.2, 126.7, 114.9, 123.3, 170.5, 256.3, 205.6, 194, 214.2,
+            224.6
+          ],
+          "noFocusRing": [
+            118.4, 111.2, 107.1, 112.2, 108.9, 110.4, 107.2, 111.8, 127, 115.4,
+            111.4, 112.9, 110.6, 106.6, 108.9, 109.3, 107.8, 126.2, 116.8,
+            111.3, 107.5, 112.6, 109, 110.5, 109, 113.1, 128.5, 115.6, 108,
+            108.2, 106.5, 111, 126.9, 116.5, 109.5, 106.5, 106.8, 108, 111.9,
+            121.2, 109.7, 106.3, 112, 106.5, 128.7, 114.7, 110.5, 106.9, 110.6,
+            110.2, 106.1, 106.1, 110, 126.1, 116.1, 110.2, 106.5, 112.6, 106.3,
+            107.1
+          ]
+        },
+        "dom": {
+          "noFocusRing": 10045,
+          "normal": 10047
+        }
+      },
+      {
+        "variant": "canvas",
+        "samples": {
+          "normal": [
+            51.7, 48.7, 49.2, 48.8, 48.7, 49.1, 48.6, 49.1, 48.8, 48.8, 48.4,
+            48.5, 48.5, 48.5, 48.1, 52, 56.5, 51.5, 48, 48, 48, 48, 47.9, 49.2,
+            47, 47.7, 47.2, 47.3, 47.7, 48, 47.5, 47.2, 60.5, 59.8, 48.7, 48.1,
+            47.7, 47.2, 47.3, 47.6, 47.7, 51.1, 56.5, 48.3, 47.8, 48.4, 48.4,
+            48.2, 47.2, 47.1, 47.4, 50.8, 54.3, 50.4, 47.9, 47.3, 47.3, 48.3,
+            48.7, 48.1
+          ],
+          "noFocusRing": [
+            49.6, 48.5, 47.7, 47.4, 47.1, 46.6, 46.9, 47.2, 47.2, 47, 48.6,
+            55.4, 47.7, 48.3, 48.3, 48.1, 49.4, 48.5, 47.8, 47.4, 47.1, 47.3,
+            47.5, 47.3, 50.7, 58.7, 55.5, 48.3, 47.4, 47.4, 46.4, 46, 46.2,
+            46.6, 46.6, 46.7, 47.2, 47.1, 47.2, 46.9, 47.3, 46.9, 56.9, 49.3,
+            47.7, 47.1, 46.8, 46.8, 46.6, 46.6, 46.5, 46.4, 46.3, 55.2, 48.5,
+            47.9, 46.4, 46.5, 46.3, 46.3
+          ]
+        },
+        "dom": {
+          "noFocusRing": 15,
+          "normal": 15
+        }
+      }
+    ]
+  },
+  "ssr": {
+    "date": "2026-10-28T11:02:24.046Z",
+    "points": 10000,
+    "gc": true,
+    "summary": {
+      "none": {
+        "median": 183.976458,
+        "serializations": 1,
+        "samples": [
+          {
+            "milliseconds": 184.032917,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 179.362958,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 181.79475,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 178.958541,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 184.978458,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 182.6725,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 184.729375,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 183.29675,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 183.571166,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 183.397625,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 184.551083,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 181.871667,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 185.559958,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 186.115375,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 183.92,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 186.051542,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 184.825958,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 184.109833,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 187.240625,
+            "serializations": 1
+          },
+          {
+            "milliseconds": 183.32975,
+            "serializations": 1
+          }
+        ]
+      },
+      "callback": {
+        "median": 338.886083,
+        "serializations": 2,
+        "samples": [
+          {
+            "milliseconds": 342.358833,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 333.262459,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 343.982458,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 354.903916,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 444.67925,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 323.894583,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 339.181834,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 329.687417,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 336.869875,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 340.308125,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 340.63875,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 327.905583,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 338.435292,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 338.602084,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 372.33125,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 340.002,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 339.102333,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 332.70625,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 338.669833,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 333.259,
+            "serializations": 2
+          }
+        ]
+      },
+      "data": {
+        "median": 334.468979,
+        "serializations": 2,
+        "samples": [
+          {
+            "milliseconds": 331.92325,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 334.969042,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 331.060333,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 408.903458,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 672.178292,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 341.947166,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 330.400292,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 334.220292,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 334.647333,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 336.26125,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 336.357917,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 334.333042,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 334.255791,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 333.237084,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 335.803666,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 334.597541,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 334.340416,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 332.983209,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 334.755292,
+            "serializations": 2
+          },
+          {
+            "milliseconds": 332.460833,
+            "serializations": 2
+          }
+        ]
+      }
+    }
+  },
+  "artifacts": {
+    "svg-10000.trace.json.gz": {
+      "bytes": 144204,
+      "sha256": "7691547ec371ff2004e340f4ed9146ab1550c59d52caa786e723a3eb8f3abfff"
+    },
+    "svg-10000.cpuprofile.gz": {
+      "bytes": 9317,
+      "sha256": "bffeb42f71b3b84f19b47530172eec60bc23a2106906355447ddd21dff2bed71"
+    },
+    "svg-10000-no-focus-ring.trace.json.gz": {
+      "bytes": 140905,
+      "sha256": "52fe7050eb4f8fe5033c7fbc152fccd1fb9989f7dfee6d27b07776e3fa497e79"
+    },
+    "svg-10000-no-focus-ring.cpuprofile.gz": {
+      "bytes": 9705,
+      "sha256": "3aedb506c11d6c3d2d5f4a2e9cffe528543b54936493cdbef4ea089f8fb63e81"
+    },
+    "canvas-10000.trace.json.gz": {
+      "bytes": 100316,
+      "sha256": "ec77095d79330adef84af122bb83badcb68cc395827e448a3659e8d32a0bc9a4"
+    },
+    "canvas-10000.cpuprofile.gz": {
+      "bytes": 6450,
+      "sha256": "fc8ecb3cbe39b52f9628a503a01b93e2de4baf2ca7e8522aca052e8d5149a8e2"
+    },
+    "canvas-10000-no-focus-ring.trace.json.gz": {
+      "bytes": 110651,
+      "sha256": "e0cac94e8fa696ab564f1a062748f41651359e976b9370ba14dfa665bea487b6"
+    },
+    "canvas-10000-no-focus-ring.cpuprofile.gz": {
+      "bytes": 6231,
+      "sha256": "dbcd187faa447985975b744cdd81c74425d7c90b0a45494e54e7b6cdda212cda"
+    },
+    "dashboard-fixed.trace.json.gz": {
+      "bytes": 191836,
+      "sha256": "cc6173bdc8cd62f060cf2f94ca0487a59cc3f937823d7efbd32cf2a98d44188e"
+    },
+    "dashboard-fixed.cpuprofile.gz": {
+      "bytes": 6695,
+      "sha256": "3c09fcdea0e275b6113dcd7add7aa4d541b32d8079b0522d877981819eee45a5"
+    },
+    "dashboard-responsive.trace.json.gz": {
+      "bytes": 193951,
+      "sha256": "6764ddea4a9ae63e8e641d96fa9cfec36f0ef7a85e823a27b65af61f49570be2"
+    },
+    "dashboard-responsive.cpuprofile.gz": {
+      "bytes": 6815,
+      "sha256": "59dab75a3c91e940eb2c98517c390648990474a349c69585138f5948b7a41577"
+    }
+  },
+  "sourceMapArtifacts": {
+    "current/main.js": {
+      "bytes": 264305,
+      "sha256": "61f315bf567f743723ffc9e62f13b0326a5c9256df277d4f6f247cb239feaff8"
+    },
+    "current/main.js.map": {
+      "bytes": 4050497,
+      "sha256": "17f780c340a986e18dcc9d97c0a1a88c57bea4f539d2365cd998ef1816efaf8f"
+    },
+    "canvas/main.js": {
+      "bytes": 270372,
+      "sha256": "c83310d8956d0b7b839fffe75b45e151851596fff12a5c446f7fd965c8449df5"
+    },
+    "canvas/main.js.map": {
+      "bytes": 4077011,
+      "sha256": "5fa981a669f1c7b55884e274cfbadcab17184adf4319480a80c1e99063deeb09"
+    }
+  }
+}

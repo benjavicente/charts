@@ -18,6 +18,7 @@ Read the canonical pages below. Each concept is documented once; guides and exam
 - docs/framework/svelte/adapter.md: Svelte Adapter: Render and hydrate TanStack Charts with Svelte 5.
 - docs/framework/angular/adapter.md: Angular Adapter: Render TanStack Charts with a signal-first Angular component and native chart host.
 - docs/framework/angular/comparison.md: Angular Adapter Comparison and Migration: Compare the old Angular adapter with the native-host, signal-based Chart and migrate existing templates and options.
+- docs/framework/angular/performance.md: Angular Adapter Performance Comparison: Reproduce matched production measurements of the old and current Angular adapters, covering bundle size, server rendering, mounting, data updates and Canvas.
 - docs/framework/lit/adapter.md: Lit Adapter: Render TanStack Charts with a light-DOM Lit custom element.
 - docs/framework/alpine/adapter.md: Alpine Adapter: Mount TanStack Charts with an Alpine directive.
 - docs/framework/octane/quick-start.md: Octane Quick Start: Install the Octane adapter, define a typed chart, render responsive SSR-safe SVG, and add native interaction.

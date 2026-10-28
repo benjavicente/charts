@@ -7,6 +7,9 @@
     "build": "ng build",
     "dev": "ng serve --host 127.0.0.1 --port 5193",
     "test": "ng test --no-watch --isolate",
+    "benchmark": "node --expose-gc scripts/benchmark-adapters.mjs",
+    "profile": "node scripts/profile-adapters.mjs",
+    "profile:ssr": "node --expose-gc scripts/profile-ssr-invalidation.mjs",
     "test:browser": "node scripts/check-comparison.mjs"
   },
   "dependencies": {

@@ -1,12 +1,43 @@
 # Angular adapter size analysis
 
-These measurements describe the baseline before the subsequent output,
-dynamic-binding, and Angular 20 minimum changes. They have not been rerun for
-that follow-up and should not be treated as its bundle sizes.
+Updated October 28, 2026. The adapter now exports `Chart` for SVG and an
+optional Canvas-default `Chart` entry, requires Angular 20, and retains
+`className`. The deprecated-component/`ChartComponent` comparison below records
+an earlier implementation, not the current package API.
 
-The signal-first `ChartComponent` is slightly larger than the deprecated `Chart` in this controlled production fixture. Its own adapter code is nearly the same size; most of the application-level increase comes from additional Angular runtime code. Exporting both components does not force consumers to bundle both.
+## Latest matched production measurements
 
-This is an analysis of the current implementation, including the ViewContainerRef cleanup. No production implementation or dependency changes were made for these measurements.
+The October 27 benchmark compares upstream `778f2cc6` with `6d417fbd`, using the
+same Angular 22.0.8 runtime and chart core. Each application is production AOT
+compiled and includes the benchmark harness.
+
+| Application           |   Minified |      Gzip |    Brotli |
+| --------------------- | ---------: | --------: | --------: |
+| Empty Angular harness | 101.53 KiB | 33.85 KiB | 30.54 KiB |
+| Old SVG adapter       | 243.95 KiB | 83.85 KiB | 74.35 KiB |
+| New SVG adapter       | 258.03 KiB | 88.50 KiB | 78.00 KiB |
+| New Canvas adapter    | 263.96 KiB | 89.61 KiB | 78.67 KiB |
+
+The new SVG application adds 4,755 gzip bytes (4.64 KiB, 5.54%). These are
+whole-app measurements, not standalone adapter sizes. They supersede the older
+fixture below for comparing the removed adapter with the new architecture.
+Different fixtures prevent direct comparisons between the two tables.
+
+The optional serialization-time SSR strategy added in `177cf0b7` has **not**
+been rebenchmarked for size or latency. Its browser entries were checked to
+exclude platform-server imports; that is a dependency-boundary check, not a
+claim of zero bundle-size cost.
+
+See [the performance report](docs/framework/angular/performance.md) for methods,
+timings, limitations, and reproduction commands, and
+[the raw samples](benchmarks/comparison/angular-adapters/2026-10-27.json).
+
+## Historical intermediate implementation
+
+Everything below describes the earlier coexistence of deprecated `Chart` and
+signal-first `ChartComponent`. Those exports no longer coexist in the package.
+Sizes, tree-shaking observations, and proposed sharing opportunities apply to
+that snapshot only; they are not recommendations based on the current source.
 
 ## Method
 
