@@ -361,6 +361,8 @@ Each entry records:
 | F-321 | Angular signal queries reject ECMAScript private fields | Tooling | resolved |
 | F-322 | Angular Canvas mark support was undocumented | Documentation | resolved |
 | F-323 | Angular secondary entries crossed APF compilation boundaries | Tooling | resolved |
+| F-324 | Chrome trace exports rejected the active workspace root | Tooling | monitoring |
+| F-325 | Angular SSR serialized unchanged markup after callback updates | API | resolved |
 
 ## Findings
 
@@ -2593,6 +2595,13 @@ Each entry records:
   across TanStack Charts, Chart.js, ECharts, Recharts, and Observable Plot
   without an unsettled operation. Raw samples and all three boundaries are
   retained in the JSON result.
+
+- Follow-up (2026-10-27): the Angular old/new benchmark initially waited for
+  `onRender` after replacing options with the same definition. The shared host
+  correctly suppresses that unchanged render, so no completion callback arrives.
+  The runner now alternates different deterministic definitions, verifies changed
+  point geometry and exactly one synchronous render per chart, bounds scheduled
+  callback waits, and records commit plus one- and two-frame proxies separately.
 
 ### F-079 — Large-data timing hid representation cost
 
@@ -9553,7 +9562,6 @@ Each entry records:
 - Verification: all nine compiled browser and SSR adapter tests pass with the
   protected outlet query, including destruction before required queries are set.
 
-
 ### F-322 - Angular Canvas mark support was undocumented
 
 - Status: resolved
@@ -9576,7 +9584,6 @@ Each entry records:
   component. The two native host components share private host and projection
   utilities while retaining their renderer-specific input and event types.
   Dedicated custom-renderer components remain a separate API from this addition.
-
 
 ### F-323 - Angular secondary entries crossed APF compilation boundaries
 
@@ -9621,3 +9628,48 @@ Each entry records:
   providers and error cleanup. Nineteen Angular 22 tests, production SVG/Canvas
   hydration with exact node reuse, and an Angular 20.0.0 consumer of the linked
   emitted entries pass with both default effects and queued serialization.
+
+### F-324 - Chrome trace exports rejected the active workspace root
+
+- Status: monitoring
+- Severity: low
+- Owner: Tooling
+- Observed in: profiling the new Angular adapter with the Chrome Performance tool
+- Friction: the Chrome tool recorded traces and returned a forced-reflow insight,
+  but both absolute and workspace-relative trace export paths were rejected as
+  outside its configured roots, including the active repository directory.
+- Decision: retain the tool insight and collect raw traces/CPU profiles through
+  Chrome DevTools Protocol in a local runner. Reuse a fixture server between the
+  benchmark and profiler, and resolve the source-map reader through the installed
+  Angular build toolchain rather than hard-coding a pnpm store version.
+- Verification: Google Chrome 156 produced six raw timeline traces, six CPU
+  profiles, source-mapped attribution and an alternating untraced focus control.
+  The fixture server serves the CSR entry and source maps correctly.
+- Follow-up: correct the Chrome tool's workspace-root propagation so its native
+  trace export can target the same authorized workspace.
+
+### F-325 - Angular SSR serialized unchanged markup after callback updates
+
+- Status: resolved
+- Severity: medium
+- Owner: API
+- Observed in: the Angular performance architecture review and late-SSR probe
+- Friction: replacing only `onFocusChange` during a pending server task triggers
+  a second full scene serialization and HTML parse. A 10,000-row chart produced
+  identical SVG but serialized twice, taking a median 338.89 ms versus 183.98 ms
+  for one serialization in the same probe (20 measured requests per scenario).
+- Evidence: the default server strategy observes the complete adapted options
+  object before `prerender()`. A real data change also serialized twice as a
+  control. The probe uses a counted wrapper around the default SVG renderer.
+- Decision: provide an optional server-only application integration using
+  `BEFORE_APP_SERIALIZED`, rather than maintaining a markup-option comparison
+  key. `CHART_SERVER_RENDER` retains an effect by default so existing SSR needs
+  no setup. `provideChartsServerRendering()` overrides it with an application
+  queue; chart-owned destruction unregisters callbacks and the hook renders
+  final inputs once. The server package stays out of browser entry imports.
+- Verification: nineteen Angular tests cover default/queued behavior, final
+  SVG/Canvas data and dimensions, destroyed charts, and concurrent application
+  isolation. Emitted package checks verify token identity, duplicate providers,
+  cleanup and errors; Angular 20/22 runtime and production hydration node reuse
+  pass. Implemented in `177cf0b7`. The earlier timings remain baseline evidence;
+  optional-provider latency and size have not been measured.

@@ -27,8 +27,13 @@ exports a Canvas-default `Chart` with the same Angular host integration.
 | Tooltip projection       | Manual embedded-view creation, context mutation and change detection                           | A private Angular component receives target and template through `inputBinding()`                                    |
 | Tooltip definition input | Decorated value property `directive.definition`                                                | Signal input `directive.definition()` with the same template binding alias                                           |
 | Lifecycle                | Component hooks own adapter and tooltip cleanup                                                | Injection-context helpers and `DestroyRef` own cleanup                                                               |
-| Server updates           | Initial serialization is saved when the adapter is created                                     | A server effect serializes the latest options before application stability                                           |
+| Server updates           | Initial serialization is saved when the adapter is created                                     | Default server effect, or optional provider that serializes final inputs once before HTML serialization              |
 | Hydration                | The shared renderer can adopt server SVG                                                       | The renderer still adopts server SVG; the example verifies exact SVG and mark identity through hydration and updates |
+
+Both adapters support values read from consumer signals with
+`[options]="options()"`; the new adapter also uses a signal input internally.
+For optional serialization-time SSR setup, see the
+[server rendering strategy](./reference/chart.md#server-rendering-strategy).
 
 Both adapters use the same framework-neutral chart definitions, renderers,
 responsive layout and interaction core. The new adapter targets zoneless apps;
@@ -154,6 +159,9 @@ components keep their normal change detection and destruction lifecycle, even
 when the core portals the tooltip outside the chart host.
 
 ## Run the comparison
+
+See the [measured performance comparison](./performance.md) for matched
+production bundle sizes, SSR, browser mounting and immutable data updates.
 
 Run `pnpm dev:charts-angular` to inspect both implementations with shared data
 and controls. The old implementation is an example-only `LegacyChart` snapshot;

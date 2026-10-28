@@ -94,6 +94,10 @@
             {
               "label": "Adapter comparison and migration",
               "to": "framework/angular/comparison"
+            },
+            {
+              "label": "Adapter Performance",
+              "to": "framework/angular/performance"
             }
           ]
         },

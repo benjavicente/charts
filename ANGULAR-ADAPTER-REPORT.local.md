@@ -1,122 +1,152 @@
 # Angular adapter modernization report
 
-This report records the baseline committed before the follow-up conventions
-review. The follow-up raises the Angular minimum to 20, adds four optional
-outputs while retaining callbacks, replaces the tooltip synchronization effect
-with dynamic input bindings, and moves hydration validation to a prerendered
-page in Chromium. The baseline's Angular 19 and implementation details below
-describe that earlier snapshot.
+Updated October 28, 2026 for the implementation through `177cf0b7`.
+This replaces the intermediate report that still described `ChartComponent`,
+`svgClass`, a deprecated component, and Angular 19 compatibility.
 
-Follow-up validation passes all ten compiled Angular 22 tests, the package build,
-repository typecheck, public callback inventory and documentation contract. An
-Angular 20.0.0 consumer compiles and links the built package and exercises both
-the browser tooltip/output lifecycle and Node SSR. Production prerendering and
-Chromium verify hydration node reuse without patching Angular's private state.
+## Current public API
 
-This report describes the completed signal-first Angular implementation, its compatibility changes, and the checks performed. The new `ChartComponent` is exported from the existing Angular entry point alongside the deprecated `Chart`; consumers do not need a separate `signal-angular` entry point.
+The Angular adapter requires **Angular 20 or later**. The public SVG component
+is `Chart`, imported from `@tanstack/charts/angular`, with selector
+`div[tanstack-chart]`. The old `<tanstack-chart>` component was removed; it is
+not shipped as a deprecated alternative. `ChartComponent` and
+`ChartComponentOptions` are not public exports.
 
-## Correctness fixes
+An optional `@tanstack/charts/angular/canvas` entry exports a Canvas-default
+component, also named `Chart`, with selector `div[tanstack-canvas-chart]`.
+Alias imports when using both. Compatibility-package imports are
+`@tanstack/angular-charts`, `/canvas`, and `/server` respectively.
 
-### Tooltip context stays current
+| Concern                   | Current behavior                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Options                   | `ChartOptions` for SVG; renderer-specific options from the Canvas entry                                       |
+| Host styling              | Native Angular class and style bindings on the owning `div`                                                   |
+| Surface styling           | `options.className` on the SVG or layered root; no `svgClass` input                                           |
+| Accessibility             | `ariaLabel`, `ariaDescription`, and `tabIndex` configure the rendered surface                                 |
+| Notifications             | Callbacks remain supported alongside `rendered`, `focusChange`, `focusGroupChange`, and `pointSelect` outputs |
+| Value-producing callbacks | Renderers, formatters, and tooltip content remain functions                                                   |
+| Tooltip definition        | Required signal input, aliased to `tanstackChartTooltipBody`, preserving generic context inference            |
+| Server scheduling         | Default reactive effect; optional serialization-time provider                                                 |
 
-The original component could retain a stale `primaryPoint` while updating the rest of a reused tooltip context. Moving focus from January to February could therefore display February's tooltip content while a custom template still read January's datum through `primaryPoint`.
+The old component already accepted signal **values** through
+`[options]="options()"`. It used a decorator input and `ngOnChanges` internally.
+The new component uses `input.required()` and reactive derivation internally;
+its instance input is read as `chart.options()`. Neither component accepts the
+signal itself through `[options]="options"`.
 
-The new implementation updates the complete context: `primaryPoint`, `points`, `content`, `pinned`, `dismiss`, `defaultBody`, and `$implicit`. Custom templates and the default body agree about the active point.
+When callback and output counterparts are both registered, the callback runs
+first and the output receives the same payload once. Consumers should register
+both only when both deliveries are intended.
 
-### Consumer signal reads do not become adapter dependencies
+## Correctness and lifecycle
 
-Callbacks and imperative operations run through `untracked`. Reading a signal inside `onRender`, `onFocusChange`, `onFocusGroupChange`, or `onSelect` no longer accidentally subscribes an invoking Angular effect to that signal. Interaction methods receive the same protection, with stable wrappers for `clientToScene`, `resolvePointer`, and `setControlledFocus`.
+The old tooltip could retain its first `primaryPoint` while updating the other
+context fields. The new body derives the complete context from the current
+target. Focus changes reuse the active view; replacing a template replaces its
+view; hiding destroys it and reopening creates a fresh one.
 
-The comparison example reproduces the original extra focus-effect execution after an unrelated log-format signal changes; the new adapter avoids that execution.
+Callbacks, output delivery, and exposed interaction operations run untracked.
+Incidental consumer signal reads therefore do not become dependencies of an
+invoking Angular effect. The example reproduces the original extra focus-effect
+execution and verifies the new behavior.
 
-### Native host identity and sizing refer to the same element
+The native host puts identity, classes, data attributes, and layout on one
+`div`, resolving the old split between the custom element and inner layout
+owner. Host bindings are applied before browser chart updates. Surface
+accessibility remains separate from native host attributes.
 
-Previously, attributes such as `id`, `data-*`, and usage-site classes belonged to `<tanstack-chart>`, while the inner `.ts-chart-host` owned layout. Compound selectors combining identity and the chart-host class did not reach that inner element. A height binding on the custom element could also leave the chart at its internal default height.
+Private `injectChartHost`, `injectChartRendererAdapter`, and
+`injectChartTooltipBody` utilities share lifecycle and projection behavior
+between the SVG and Canvas components. Renderer-specific inputs and event
+payloads remain separate. The adapter is lazy, stable across ordinary updates,
+and destroyed through its owning `DestroyRef`.
 
-The new selector, `div[tanstack-chart]`, puts identity, native Angular bindings, `.ts-chart-host`, and layout on one element. The comparison verifies identity-dependent styles and a 180px bordered host with a 176px content area, instead of the original 320px internal height.
+Tooltip creation uses `ViewContainerRef.createComponent()` with dynamic
+`inputBinding()` for target and projected template. It needs no separate
+synchronization effect or `ComponentRef.setInput()` bridge. Angular owns the
+component and embedded view; the chart core owns the tooltip body destination.
 
-### Tooltip replacement and teardown follow Angular ownership
+Components use required signal inputs, signal queries, computed derivation,
+explicit OnPush, and Angular's default standalone setting. Compiler-managed
+queries remain protected because Angular rejects ECMAScript-private queries.
+Shared imported host/template constants were checked with Angular 20 and 22;
+the component metadata references these fields explicitly.
 
-Changing or removing the projected tooltip template updates the rendered body independently of whether the core emits another target change. Changing active points reuses the embedded view. Hiding the tooltip destroys that view; reopening creates a fresh one, matching the React and Solid lifecycle. Consequently, local state inside a custom tooltip resets after an actual hide.
+## Canvas and package boundaries
 
-Target replacement, template removal, and chart destruction release the Angular-owned component and view. Cleanup does not destroy the reusable tooltip body element owned by the core.
+The SVG component still supports per-mark Canvas composition. The optional
+Canvas entry additionally supplies a Canvas-default surface. Canvas SSR emits
+an unpainted shell; it does not provide the visible server chart that SVG does.
 
-## Rendering and design improvements
+The Angular Package Format can inline private shared helpers into secondary
+entries. SVG and Canvas therefore have distinct private tooltip component IDs,
+while sharing their template and input base. The public tooltip directive and
+server strategy token retain identity through the primary entry. Packaging
+finalizes sibling imports and removes redundant secondary proxy manifests.
+Browser entries do not import `@angular/platform-server`.
 
-### One options-update implementation
+## Server rendering and hydration
 
-One shared callback contains the component's sole `adapter.update(options)` call. It is registered once using `afterRenderEffect` in the browser or `effect` on the server. Only scheduling differs; option transformation and application are shared. Server serialization follows the same update inside that callback.
+`CHART_SERVER_RENDER` is a public strategy token with an empty debug description.
+Its default strategy registers `effect(render)` in the chart injection context,
+preserving reactive SSR without extra setup.
 
-Browser updates run after Angular applies host bindings. The explicit `mixedReadWrite` phase reflects the core operation's combined DOM measurements and writes. A separate `afterNextRender` callback mounts once, without a reactive mounted flag or duplicated update branches.
+`provideChartsServerRendering()` from `@tanstack/charts/angular/server` optionally
+overrides that strategy. A queue owned by the application injector registers
+live charts, and each chart's `DestroyRef` unregisters it. Angular's
+`BEFORE_APP_SERIALIZED` hook flushes final inputs once after stability. Duplicate
+provider registration does not render twice; applications have isolated queues.
+Errors go to `ErrorHandler`, and the queue clears even if that handler throws.
+`@angular/platform-server >=20` is an optional peer for this server entry.
 
-### Lazy, stable renderer ownership
+Both strategies include final data, dimensions, and accessibility inputs.
+Hydration adopts the existing server SVG, mark, and Canvas nodes. Subsequent
+updates preserve mounted identity. Server rendering does not mount a browser
+renderer or invoke its `onRender` notification.
 
-The renderer adapter is created lazily on its first imperative use, outside reactive tracking, and retained for the component lifetime. Destruction is registered with the owning `DestroyRef` when the adapter is created. There is no effect whose sole purpose is constructing the adapter and no lifecycle ownership inside a computed value.
+## Performance evidence
 
-Destroying a component before its required input or view query becomes available is safe. Ordinary option, data, and dimension updates preserve renderer/controller identity and the existing SVG. The renderer is memoized against the `renderSvg` callback.
+The matched October 27 benchmark compares upstream `778f2cc6` with `6d417fbd`,
+using the same Angular 22 and chart core. It predates the optional SSR strategy;
+its numbers must not be presented as measurements of `177cf0b7`.
 
-### Native host styling and explicit SVG styling
+- SVG whole-app gzip size: 83.85 KiB old versus 88.50 KiB new, +4.64 KiB (5.54%).
+- Browser mounting: 50–61% less time across the measured workloads.
+- SVG data-update and SSR times: close to the old adapter's measurements.
+- Canvas reduces DOM/output size and some update costs; its SSR shell is unpainted.
 
-The host directly owns `position: relative` and the responsive width default. Angular's numeric width and height bindings replace manual pixel-string conversion. Height defaults to 320px when neither an explicit height nor a valid aspect ratio is provided; explicit dimensions, positive aspect ratios, and resets are covered by verification.
+Chrome profiles attributed less than 0.5% of sampled active CPU to the Angular
+wrapper. Dense Canvas positional projection and SVG reconciliation dominate
+larger costs. Shared-core projection work remains a separate task in `PLAN.md`.
+The optional SSR provider has correctness/count coverage, not a newly measured
+latency or bundle-size result.
 
-Usage-site class and style bindings use Angular's normal binding precedence. `ChartComponentOptions` excludes presentation fields `class` and `style`, and replaces the SVG-targeting `className` field with `svgClass`. This makes the target of the class explicit. If native CSS should determine height, omit the scene-sizing `height` and `aspectRatio` options.
-
-### Angular-native tooltip rendering
-
-A private tooltip component owns Angular rendering through `NgTemplateOutlet`. A `ViewContainerRef` declared in the chart template creates it with the owning view's injection context and manages attachment and removal. It receives both target and template through `ComponentRef.setInput`. The adapter only places Angular's generated host into the body element supplied by the core; no CDK dependency is required.
-
-The helper no longer needs a separate target signal, context getters, manually moved root nodes, manual `detectChanges`, a body-host signal, or a dismiss-inactive fallback. It also avoids manual host creation, `ApplicationRef` attachment/detachment, explicit injector plumbing, and a redundant native host-removal call. Its effect only observes projected template changes; core target notifications update the component input directly. The default tooltip retains the shared text, structured rows, swatches, active styling, and CSS-variable styling conventions.
-
-### Server rendering and hydration
-
-Server rendering serializes current options without mounting, measuring the DOM, or invoking `onRender`. Late option changes before server stabilization are included in the HTML. Hydration adopts the existing server SVG and mark nodes, and subsequent updates preserve them. A continuing browser `innerHTML` binding does not replace the mounted runtime.
-
-These are verified lifecycle guarantees of the new implementation; they are not all independently demonstrated defects in the original component.
-
-### Explicit Angular contracts
-
-The component uses required signal inputs, signal queries, pure computed derivation, ECMAScript private implementation fields, and explicit standalone and OnPush settings. Compiler-managed signal queries remain protected because Angular rejects ECMAScript-private query declarations. The tooltip directive keeps its value-shaped `definition` input and generic template-context inference. Established source filenames remain deliberate and unchanged.
-
-## Deprecations and API changes
-
-**The only public declaration formally marked `@deprecated` is `Chart`.** Deprecation preserves its export and implementation; no removal version is scheduled.
-
-| API                                                                    | Current status                                                                                                                                   |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Chart`                                                                | Formally deprecated. Use `ChartComponent`.                                                                                                       |
-| `<tanstack-chart>`                                                     | Retained selector of the deprecated component. New usage is `<div tanstack-chart>`.                                                              |
-| `ChartComponent`                                                       | New supported component, exported from the existing Angular entry point.                                                                         |
-| `ChartComponentOptions`                                                | New options type for `ChartComponent`; includes `svgClass`.                                                                                      |
-| `ChartOptions`, `ChartCommonOptions`, `ChartPresentationOptions`       | Retained legacy types. They are **not** individually annotated `@deprecated`.                                                                    |
-| Legacy `options.class` and `options.style`                             | Still supported by `Chart`; excluded from `ChartComponentOptions`. Bind host class/style in the Angular template.                                |
-| Legacy `options.className`                                             | Still supported by `Chart`; the new Angular component uses `svgClass` for the root SVG. Core and other adapters' `className` APIs are unchanged. |
-| `[options]` template binding                                           | Supported by both components. On a `ChartComponent` instance, `options` is a signal and is read as `options()`.                                  |
-| `ChartTooltipBodyDirective` and `[tanstackChartTooltipBody]`           | Supported, unchanged public directive contract; not deprecated.                                                                                  |
-| Tooltip render/template context types, `ChartDefinition`, `ChartPoint` | Retained supported exports; not deprecated.                                                                                                      |
-
-The migration involves more than changing the selector: import `ChartComponent`, use `ChartComponentOptions`, move host presentation to native bindings, and rename an SVG class option to `svgClass`. Framework-agnostic chart definitions and data configuration remain reusable.
-
-## Examples, documentation, and tooling
-
-- The Angular example compares original and new adapters in two columns, sharing chart definitions and data. Its rows demonstrate tooltip freshness, incidental signal tracking, native identity and sizing, and reactive updates with unmount/remount.
-- Styling follows the other adapter examples. Desktop, mobile, light, and dark presentations were reviewed.
-- Angular adapter and reference documentation describe the new component and migration. Generated documentation was synchronized through the repository's sync process.
-- Strict template checks preserve inferred datum and axis types and reject legacy presentation fields in the new options type.
-- Public callback inventory handling now excludes ECMAScript-private members instead of exposing implementation methods as public callbacks.
-- The example test setup uses source-entry path mappings for Angular AOT compilation. Angular CLI caching is disabled to avoid the observed native LMDB failure in this environment.
+See [the public performance report](docs/framework/angular/performance.md),
+[raw benchmark samples](benchmarks/comparison/angular-adapters/2026-10-27.json),
+and [profile summaries](benchmarks/comparison/angular-adapters/2026-10-28-profile.json).
+The size report retains earlier intermediate measurements as historical evidence.
 
 ## Verification performed
 
-- Nine compiled Angular 22.0.8 tests passed: six browser tests and three server/hydration tests. They cover tooltip context and lifecycle, callback tracking, stable renderer identity, post-binding sizing, native/SVG classes, template replacement, early destruction, server serialization, late server options, and hydration node preservation.
-- Package partial compilation, strict generic template/type checks, and the production Angular example build passed.
-- Isolated Angular 19.0.0 and 20.0.0 compilation/runtime checks passed, including fixed-width sizing, tooltip updates and teardown, callback tracking, and stable SVG identity.
-- Browser comparison checks reproduced the two original correctness issues and verified native identity/styles, resizing, data updates, retained SVG nodes, remounting, themes, and mobile layout without page errors. The in-app browser was also reviewed.
-- Documentation synchronization, formatting, and diff whitespace checks passed. Direct public callback inventory validation passed across 816 surfaces with no reported errors.
+- Nineteen compiled Angular 22 tests pass, including default and queued SSR,
+  late inputs for SVG and Canvas, destroyed charts, and sequential/concurrent
+  application isolation.
+- Production prerendering and Chromium checks pass for exact SVG/mark/Canvas
+  hydration node reuse, tooltip lifecycle, callback/output identity, untracked
+  focus, native host and surface styling, updates, renderer switching, cleanup,
+  themes, and mobile layout.
+- All seven framework adapter package gates pass. Emitted Angular entries share
+  the directive and token, avoid duplicate component IDs, and exercise queued
+  cleanup, duplicate providers, and both throwing/nonthrowing error handlers.
+- Angular 20.0.0 links and runs the emitted SVG/Canvas/server entries with both
+  default and queued SSR. Earlier strict Angular 20 consumer/template checks
+  also preserve Canvas tooltip inference; the latest strategy harness is a
+  runtime/linker check rather than a new strict consumer compilation.
+- Repository typecheck, four unified-package artifact tests, public callback
+  inventory (817 callable surfaces), docs contracts/synchronization, formatting,
+  and whitespace checks pass. Full repository CI was not run.
 
-The full public-callback test suite timed out during its 30-second setup hook; its seven tests were skipped, so that suite is not reported as passing. Full repository CI was not run.
-
-## Compatibility and scope
-
-The implementation targets signal-first, zoneless applications; this work does not add Zone.js application support. Angular peer compatibility remains `>=19`, with versions 19, 20, and 22 checked. `@angular/common` is now a peer dependency of the Angular package for `NgTemplateOutlet`, with the corresponding optional peer declaration on the umbrella package.
-
-Package versions remain unchanged at 1.1.0. The legacy component remains available, and no separate adapter entry point or version bump was applied.
+The adapter targets zoneless applications; Zone.js support was not added.
+Angular 19 is outside the new peer range because dynamic `inputBinding()`
+requires Angular 20. Package version numbers remain unchanged until release;
+the changeset records this as a major API change.

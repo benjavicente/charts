@@ -6,7 +6,7 @@ Observed difficulty from using the API is tracked separately in
 [`API-FRICTION.md`](./API-FRICTION.md). Production migrations, examples, and
 agent evaluations must update that log when they expose a repeatable problem.
 
-Last updated: 2026-08-26
+Last updated: 2026-10-28
 
 ## Working thesis
 
@@ -3234,6 +3234,26 @@ Each optional capability should have a real consumer, independent entry point, b
 - A successful generic migration from TanStack.com
 - A compelling optional integration in TanStack Starters
 - An agent can create and modify charts without inventing APIs or requiring runtime AI features
+
+## Follow-up tasks from the Angular performance review
+
+- [ ] **Shared-core positional projection, separate from the Angular adapter.**
+      Profile and reduce temporary arrays/object copies in
+      `packages/charts-core/src/resolved-layout-position.ts`. The October 28 Chrome
+      profile attributed about 47% of dense Canvas update samples to this path.
+      Start with local output loops; consider combined x/y projection only where
+      inputs permit it. Preserve invalid-value filtering, source indices, configured
+      scale semantics, coordinate types and input immutability. Verify with complete
+      SVG and Canvas charts and shared-core tests; do not fold this into Angular work.
+      Evidence: `benchmarks/comparison/angular-adapters/2026-10-28-profile.json`.
+- [x] **Optional serialize-once Angular SSR integration.** `CHART_SERVER_RENDER`
+      defaults to an effect; `provideChartsServerRendering()` optionally registers
+      live charts and flushes final inputs through `BEFORE_APP_SERIALIZED`.
+      Chart destruction unregisters callbacks, application injectors isolate queues,
+      and browser entries exclude platform-server imports. Nineteen Angular tests,
+      emitted-entry cleanup/error checks, Angular 20/22 runtime checks, and exact
+      SVG/Canvas hydration node reuse pass. Implemented in `177cf0b7`; latency and
+      size of this optional strategy remain unmeasured.
 
 ## Open decisions
 
