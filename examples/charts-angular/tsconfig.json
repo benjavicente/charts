@@ -12,6 +12,9 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "paths": {
+      "@tanstack/charts/angular/server": [
+        "../../packages/charts-core/src/angular-server.ts"
+      ],
       "@tanstack/charts/angular/canvas": [
         "../../packages/charts-core/src/angular-canvas.ts"
       ],

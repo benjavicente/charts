@@ -17,7 +17,8 @@
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./canvas": "./src/canvas.ts"
+    "./canvas": "./src/canvas.ts",
+    "./server": "./src/server.ts"
   },
   "dependencies": {
     "@tanstack/charts": "workspace:*",
@@ -26,7 +27,13 @@
   "peerDependencies": {
     "@angular/common": ">=20",
     "@angular/core": ">=20",
-    "@angular/platform-browser": ">=20"
+    "@angular/platform-browser": ">=20",
+    "@angular/platform-server": ">=20"
+  },
+  "peerDependenciesMeta": {
+    "@angular/platform-server": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@angular/common": "^22.0.2",
@@ -48,6 +55,10 @@
       "./canvas": {
         "types": "./dist/types/tanstack-angular-charts-canvas.d.ts",
         "default": "./dist/fesm2022/tanstack-angular-charts-canvas.mjs"
+      },
+      "./server": {
+        "types": "./dist/types/tanstack-angular-charts-server.d.ts",
+        "default": "./dist/fesm2022/tanstack-angular-charts-server.mjs"
       }
     }
   }

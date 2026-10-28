@@ -6,6 +6,7 @@ import {
   computed,
   contentChild,
   input,
+  inject,
   output,
   viewChild,
 } from '@angular/core'
@@ -16,7 +17,10 @@ import type {
   ChartRendererRenderContext,
   ChartValue,
 } from '@tanstack/charts'
-import { ChartTooltipBodyDirective } from '@tanstack/angular-charts'
+import {
+  ChartTooltipBodyDirective,
+  CHART_SERVER_RENDER,
+} from '@tanstack/angular-charts'
 import { chartHostBindings, chartHostTemplate } from './chart-host'
 import { injectChartHost } from './inject-chart-host'
 import { CanvasChartTooltipBodyComponent } from './CanvasChartTooltipBodyComponent'
@@ -62,6 +66,7 @@ export class CanvasChart<
     }
   })
   protected readonly host = injectChartHost({
+    serverRender: inject(CHART_SERVER_RENDER),
     options: this.#rendererOptions,
     surface: this.surface,
     tooltipOutlet: this.tooltipOutlet,

@@ -6,6 +6,7 @@ import {
   computed,
   contentChild,
   input,
+  inject,
   output,
   viewChild,
 } from '@angular/core'
@@ -21,6 +22,7 @@ import type {
 import { ChartTooltipBodyDirective } from './ChartTooltipBody'
 import { chartHostBindings, chartHostTemplate } from './chart-host'
 import { injectChartHost } from './inject-chart-host'
+import { CHART_SERVER_RENDER } from './chart-server-render'
 import { SvgChartTooltipBodyComponent } from './SvgChartTooltipBodyComponent'
 import type { ChartOptions } from './types'
 
@@ -75,6 +77,7 @@ export class Chart<
     }
   })
   protected readonly host = injectChartHost({
+    serverRender: inject(CHART_SERVER_RENDER),
     options: this.#rendererOptions,
     surface: this.surface,
     tooltipOutlet: this.tooltipOutlet,

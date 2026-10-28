@@ -3,7 +3,11 @@ export type {
   CanvasChartCommonOptions as ChartCommonOptions,
   CanvasChartOptions as ChartOptions,
 } from './canvas-types'
-export { ChartTooltipBodyDirective } from '@tanstack/angular-charts'
+export {
+  ChartTooltipBodyDirective,
+  CHART_SERVER_RENDER,
+} from '@tanstack/angular-charts'
+export type { ChartServerRenderStrategy } from '@tanstack/angular-charts'
 export type {
   ChartPresentationOptions,
   ChartTooltipBodyRenderContext,
