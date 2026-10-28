@@ -385,6 +385,7 @@ async function verifyUnifiedBundles(fixtureRoot) {
     ],
     ['Angular adapter', '@tanstack/charts/angular'],
     ['Angular canvas adapter', '@tanstack/charts/angular/canvas'],
+    ['Angular server adapter', '@tanstack/charts/angular/server'],
     ['Lit adapter', '@tanstack/charts/lit'],
     ['Alpine adapter', '@tanstack/charts/alpine'],
   ]

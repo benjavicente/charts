@@ -39,6 +39,33 @@ Its `onRender` and `rendered` payload is `ChartRendererRenderContext`, exposing
 The component selects its renderer; there is no `renderer` option.
 See [Canvas default](../adapter.md#canvas-default) for rendering and SSR behavior.
 
+## Server rendering strategy
+
+`CHART_SERVER_RENDER` is exported by the SVG and Canvas entries as the same
+injection token. Its type is `ChartServerRenderStrategy`:
+
+```ts
+type ChartServerRenderStrategy = (render: () => void) => void
+```
+
+The shared host invokes the strategy during each chart's construction, in that
+chart's injection context. The supplied callback reads the current inputs and
+queries when invoked. A custom strategy must defer that read until the view is
+ready and own its scheduling and cleanup in the chart's context. The default
+strategy registers `effect(render)`, preserving existing SSR without extra setup.
+
+`provideChartsServerRendering()` from `@tanstack/charts/angular/server` returns
+application-level environment providers. It overrides the strategy with a
+request-local queue and registers Angular's `BEFORE_APP_SERIALIZED` hook.
+Live SVG and Canvas charts serialize from their final inputs once; charts
+destroyed beforehand are removed. Duplicate provider registration does not
+serialize the queue twice. Errors go to the application's `ErrorHandler`; a
+throwing handler aborts the remaining batch, and the queue is still cleared.
+
+The provider affects server scheduling only. Browser effects and mounting are
+unchanged. The server entry requires the optional `@angular/platform-server`
+peer, Angular 20 or later. See the [server setup](../adapter.md#render-once-before-server-serialization).
+
 ## `options`
 
 | Option               | Type                                         | Default               | Meaning                                                             |

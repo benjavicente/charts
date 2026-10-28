@@ -72,6 +72,32 @@ Callback signal reads and operations on the `onRender` interaction
 controller run untracked, so a callback's incidental reads do not become
 dependencies of a calling effect.
 
+### Render once before server serialization
+
+SSR uses an effect by default and needs no chart-specific application provider.
+For applications that update chart inputs while server tasks are pending, the
+optional server entry can defer chart rendering until the final HTML is serialized:
+
+```ts
+// Add to the application's existing server-only providers.
+import { provideChartsServerRendering } from '@tanstack/charts/angular/server'
+
+export const serverConfig = {
+  providers: [provideChartsServerRendering()],
+}
+```
+
+Keep the existing Angular SSR providers in the application's merged server
+configuration. This chart provider belongs to the application injector; it is
+not a component provider. The compatibility import is
+`@tanstack/angular-charts/server`.
+
+The provider overrides `CHART_SERVER_RENDER` for both SVG and Canvas charts.
+Each live chart reads its latest inputs in Angular's `BEFORE_APP_SERIALIZED`
+hook. Destroying a chart unregisters it. The browser lifecycle and chart
+templates stay the same, and browser entries do not import
+`@angular/platform-server`. See the [server strategy reference](./reference/chart.md#server-rendering-strategy).
+
 ## Canvas marks
 
 `Chart` supports Canvas marks through the shared renderer composition. Import

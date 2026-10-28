@@ -6,12 +6,14 @@ import {
 import type { BootstrapContext } from '@angular/platform-browser'
 import { provideServerRendering, RenderMode, withRoutes } from '@angular/ssr'
 import { App } from './app/App'
+import { provideChartsServerRendering } from '@tanstack/charts/angular/server'
 
 export default (context: BootstrapContext) =>
   bootstrapApplication(
     App,
     {
       providers: [
+        provideChartsServerRendering(),
         provideZonelessChangeDetection(),
         provideClientHydration(),
         provideServerRendering(

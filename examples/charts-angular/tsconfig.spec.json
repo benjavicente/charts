@@ -4,6 +4,9 @@
     "outDir": "./out-tsc/spec",
     "types": ["vitest/globals"],
     "paths": {
+      "@tanstack/charts/angular/server": [
+        "../../packages/charts-core/src/angular-server.ts"
+      ],
       "@tanstack/charts/angular": ["../../packages/charts-core/src/angular.ts"],
       "@tanstack/charts/angular/canvas": [
         "../../packages/charts-core/src/angular-canvas.ts"

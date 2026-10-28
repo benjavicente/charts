@@ -6,7 +6,6 @@ import {
   afterNextRender,
   afterRenderEffect,
   computed,
-  effect,
   inject,
   untracked,
 } from '@angular/core'
@@ -27,6 +26,7 @@ import type { ChartTooltipBodyDirective } from './ChartTooltipBody'
 import { injectChartRendererAdapter } from './inject-chart-renderer-adapter'
 import { injectChartTooltipBody } from './inject-chart-tooltip-body'
 import type { ChartTooltipBody } from './chart-tooltip-body'
+import type { ChartServerRenderStrategy } from './chart-server-render'
 
 @Injectable({ providedIn: 'root' })
 class ChartIdGenerator {
@@ -48,6 +48,7 @@ export function injectChartHost<
   TXValue extends ChartValue,
   TYValue extends ChartValue,
 >(config: {
+  serverRender: ChartServerRenderStrategy
   options: () => ChartRendererHostOptions<TDatum, TXValue, TYValue>
   surface: () => ElementRef<HTMLElement> | undefined
   tooltipOutlet: () => ViewContainerRef
@@ -145,7 +146,7 @@ export function injectChartHost<
     })
   }
   // The core measures and writes DOM together; only scheduling differs by platform.
-  if (isServer) effect(updateOptions)
+  if (isServer) config.serverRender(updateOptions)
   else afterRenderEffect({ mixedReadWrite: updateOptions })
   afterNextRender({
     mixedReadWrite: () =>

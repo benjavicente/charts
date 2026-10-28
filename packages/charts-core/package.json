@@ -46,6 +46,7 @@
     "@angular/common": ">=20",
     "@angular/core": ">=20",
     "@angular/platform-browser": ">=20",
+    "@angular/platform-server": ">=20",
     "alpinejs": ">=3.15",
     "lit": ">=3.1.3",
     "octane": "^0.1.13",
@@ -66,6 +67,9 @@
       "optional": true
     },
     "@angular/platform-browser": {
+      "optional": true
+    },
+    "@angular/platform-server": {
       "optional": true
     },
     "alpinejs": {
@@ -230,7 +234,8 @@
     "./view": "./src/view.ts",
     "./vue": "./src/vue.ts",
     "./waffle": "./src/waffle.ts",
-    "./angular/canvas": "./src/angular-canvas.ts"
+    "./angular/canvas": "./src/angular-canvas.ts",
+    "./angular/server": "./src/angular-server.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -715,6 +720,10 @@
       "./angular/canvas": {
         "types": "./dist/angular/types/tanstack-angular-charts-canvas.d.ts",
         "default": "./dist/angular/fesm2022/tanstack-angular-charts-canvas.mjs"
+      },
+      "./angular/server": {
+        "types": "./dist/angular/types/tanstack-angular-charts-server.d.ts",
+        "default": "./dist/angular/fesm2022/tanstack-angular-charts-server.mjs"
       }
     }
   }

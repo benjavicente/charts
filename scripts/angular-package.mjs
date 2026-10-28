@@ -30,7 +30,8 @@ export async function finalizeAngularPackage(packageRoot) {
     }
   }
   // Explicit root exports locate the secondary entry; its APF proxy is redundant.
-  await rm(resolve(root, 'canvas/package.json'), { force: true })
+  for (const entry of ['canvas', 'server'])
+    await rm(resolve(root, entry, 'package.json'), { force: true })
 }
 
 /** Exercise emitted APF entries together, including Angular's component-ID checks. */
@@ -45,11 +46,44 @@ export async function verifyAngularPackage(packageRoot) {
       stdin: {
         contents: `
           import '@angular/compiler';
-          import { reflectComponentType } from '@angular/core';
-          import { Chart, ChartTooltipBodyDirective } from ${JSON.stringify(resolve(root, 'tanstack-angular-charts.mjs'))};
-          import { Chart as CanvasChart, ChartTooltipBodyDirective as CanvasDirective } from ${JSON.stringify(resolve(root, 'tanstack-angular-charts-canvas.mjs'))};
+          import { reflectComponentType, createEnvironmentInjector, Injector, ErrorHandler, inject, runInInjectionContext } from '@angular/core';
+          import { BEFORE_APP_SERIALIZED } from '@angular/platform-server';
+          import { Chart, ChartTooltipBodyDirective, CHART_SERVER_RENDER } from ${JSON.stringify(resolve(root, 'tanstack-angular-charts.mjs'))};
+          import { Chart as CanvasChart, ChartTooltipBodyDirective as CanvasDirective, CHART_SERVER_RENDER as CANVAS_SERVER_RENDER } from ${JSON.stringify(resolve(root, 'tanstack-angular-charts-canvas.mjs'))};
+          import { provideChartsServerRendering } from ${JSON.stringify(resolve(root, 'tanstack-angular-charts-server.mjs'))};
           export const selectors = [reflectComponentType(Chart).selector, reflectComponentType(CanvasChart).selector];
           export const sharedDirective = ChartTooltipBodyDirective === CanvasDirective;
+          export const sharedStrategy = CHART_SERVER_RENDER === CANVAS_SERVER_RENDER;
+          export function exerciseServerStrategy(throwFromHandler = false) {
+            const errors = [];
+            const app = createEnvironmentInjector([
+              provideChartsServerRendering(),
+              provideChartsServerRendering(),
+              { provide: ErrorHandler, useValue: { handleError: error => {
+                errors.push(error.message);
+                if (throwFromHandler) throw error;
+              } } },
+            ], Injector.NULL);
+            const removed = createEnvironmentInjector([], app);
+            const live = createEnvironmentInjector([], app);
+            const calls = [];
+            runInInjectionContext(removed, () => inject(CHART_SERVER_RENDER)(() => calls.push('removed')));
+            runInInjectionContext(live, () => inject(CANVAS_SERVER_RENDER)(() => { throw Error('chart failed') }));
+            runInInjectionContext(live, () => inject(CHART_SERVER_RENDER)(() => calls.push('live')));
+            removed.destroy();
+            const hooks = app.get(BEFORE_APP_SERIALIZED);
+            let aborted = false;
+            try {
+              for (const hook of hooks) hook();
+            } catch (error) {
+              if (!throwFromHandler) throw error;
+              aborted = true;
+            }
+            for (const hook of hooks) hook();
+            live.destroy();
+            app.destroy();
+            return { calls, errors, aborted };
+          }
         `,
         resolveDir: packageRoot,
       },
@@ -88,6 +122,21 @@ export async function verifyAngularPackage(packageRoot) {
       true,
       'Renderer entries must share the tooltip directive',
     )
+    assert.equal(
+      entries.sharedStrategy,
+      true,
+      'Renderer entries must share the SSR strategy token',
+    )
+    assert.deepEqual(entries.exerciseServerStrategy(), {
+      calls: ['live'],
+      errors: ['chart failed'],
+      aborted: false,
+    })
+    assert.deepEqual(entries.exerciseServerStrategy(true), {
+      calls: [],
+      errors: ['chart failed'],
+      aborted: true,
+    })
     assert.deepEqual(
       warnings.filter((message) => message.includes('NG0912')),
       [],

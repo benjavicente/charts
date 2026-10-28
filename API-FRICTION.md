@@ -5,7 +5,7 @@ observed difficulty from examples, production migrations, tests, and agent
 evaluations so later API, documentation, and TanStack Intent skill work is
 based on evidence.
 
-Last updated: 2026-10-27
+Last updated: 2026-10-28
 
 ## Triage rule
 
@@ -9611,3 +9611,13 @@ Each entry records:
   renders SVG and Canvas in Node with shared directive identity and no NG0912.
   The Angular 20 template checker also rejects an invalid Canvas tooltip datum
   field, confirming that projection preserves its inferred datum type.
+- Server-strategy follow-up: SVG injects the primary strategy token locally;
+  Canvas and the optional server provider import that same token from the primary
+  entry. The shared host receives the resolved strategy, avoiding a second token
+  being inlined with shared helper code in Canvas's APF bundle. The server entry
+  adds its own optional platform-server peer and finalized export, while browser
+  entries remain free of platform-server imports. Emitted-entry checks now
+  resolve the provider and verify token identity, chart-owned cleanup, duplicate
+  providers and error cleanup. Nineteen Angular 22 tests, production SVG/Canvas
+  hydration with exact node reuse, and an Angular 20.0.0 consumer of the linked
+  emitted entries pass with both default effects and queued serialization.
