@@ -3,7 +3,6 @@ import {
   Injectable,
   PLATFORM_ID,
   Renderer2,
-  afterNextRender,
   afterRenderEffect,
   computed,
   inject,
@@ -14,12 +13,14 @@ import { resolveChartAdapterLayout } from '@tanstack/charts/adapter'
 import type {
   ChartInteractionController,
   ChartPoint,
+  ChartRenderer,
   ChartRendererHostOptions,
+  ChartRendererRenderContext,
   ChartValue,
 } from '@tanstack/charts'
 import type { ChartTooltipBodyRenderer } from '../tooltip/chart-tooltip-body-token'
 import { injectChartRendererAdapter } from './inject-chart-renderer-adapter'
-import type { ChartServerRenderStrategy } from '../server/chart-server-render'
+import { CHART_SERVER_RENDER } from '../server/chart-server-render'
 
 @Injectable({ providedIn: 'root' })
 class ChartIdGenerator {
@@ -34,27 +35,83 @@ class ChartIdGenerator {
   }
 }
 
+/** Component options before the renderer entry supplies its renderer. */
+export type ChartHostInputOptions<
+  TDatum,
+  TXValue extends ChartValue,
+  TYValue extends ChartValue,
+  TRendered,
+> = Omit<
+  ChartRendererHostOptions<TDatum, TXValue, TYValue>,
+  'renderer' | 'onRender' | 'onTooltipBodyChange'
+> & { onRender?: (context: TRendered) => void }
+
+/** The public declarations a chart component exposes. */
+export interface ChartHostDeclarations<
+  TDatum,
+  TXValue extends ChartValue,
+  TYValue extends ChartValue,
+  TOptions,
+  TRendered,
+> {
+  readonly options: () => TOptions
+  readonly rendered: OutputEmitterRef<TRendered>
+  readonly focusChange: OutputEmitterRef<ChartPoint<
+    TDatum,
+    TXValue,
+    TYValue
+  > | null>
+  readonly focusGroupChange: OutputEmitterRef<
+    readonly ChartPoint<TDatum, TXValue, TYValue>[]
+  >
+  readonly pointSelect: OutputEmitterRef<ChartPoint<
+    TDatum,
+    TXValue,
+    TYValue
+  > | null>
+}
+
+/** What differs between renderer entries, plus the chart's own queries. */
+export interface ChartHostRendererConfig<
+  TDatum,
+  TXValue extends ChartValue,
+  TYValue extends ChartValue,
+  TOptions,
+  TRendered,
+> {
+  readonly id: string
+  readonly surface: () => ElementRef<HTMLElement> | undefined
+  readonly tooltipBody: () =>
+    ChartTooltipBodyRenderer<TDatum, TXValue, TYValue> | undefined
+  /** Read reactively; a new renderer identity remounts the chart surface. */
+  readonly renderer: () => ChartRenderer<TDatum, TXValue, TYValue>
+  /** Shapes core's neutral render context into this entry's public context. */
+  toRenderContext(
+    context: ChartRendererRenderContext<TDatum, TXValue, TYValue>,
+  ): TRendered
+}
+
 /** Owns the renderer-neutral Angular host protocol; all query/input reads are deferred. */
 export function injectChartHost<
   TDatum,
   TXValue extends ChartValue,
   TYValue extends ChartValue,
->(config: {
-  serverRender: ChartServerRenderStrategy
-  options: () => ChartRendererHostOptions<TDatum, TXValue, TYValue>
-  surface: () => ElementRef<HTMLElement> | undefined
-  tooltipBody: () =>
-    ChartTooltipBodyRenderer<TDatum, TXValue, TYValue> | undefined
-  idNamespace: string
-  focusChange: OutputEmitterRef<ChartPoint<TDatum, TXValue, TYValue> | null>
-  focusGroupChange: OutputEmitterRef<
-    readonly ChartPoint<TDatum, TXValue, TYValue>[]
-  >
-  pointSelect: OutputEmitterRef<ChartPoint<TDatum, TXValue, TYValue> | null>
-}) {
+  TOptions extends ChartHostInputOptions<TDatum, TXValue, TYValue, TRendered>,
+  TRendered,
+>(
+  host: ChartHostDeclarations<TDatum, TXValue, TYValue, TOptions, TRendered>,
+  config: ChartHostRendererConfig<
+    TDatum,
+    TXValue,
+    TYValue,
+    TOptions,
+    TRendered
+  >,
+) {
   const domRenderer = inject(Renderer2)
   const isServer = inject(PLATFORM_ID) === 'server'
-  const generatedId = inject(ChartIdGenerator).next(config.idNamespace)
+  const serverRender = inject(CHART_SERVER_RENDER)
+  const generatedId = inject(ChartIdGenerator).next(config.id)
   const interactions = new WeakMap<
     ChartInteractionController<TDatum, TXValue, TYValue>,
     ChartInteractionController<TDatum, TXValue, TYValue>
@@ -75,37 +132,43 @@ export function injectChartHost<
     return interaction
   }
   const options = computed(() => {
+    const input = host.options()
     const {
       onRender,
       onFocusChange,
       onFocusGroupChange,
       onSelect,
       ...options
-    } = config.options()
+    } = input
     return {
       ...options,
+      renderer: config.renderer(),
       idPrefix: options.idPrefix ?? generatedId,
+      // Angular cannot tell whether `rendered` has listeners, so the context is
+      // always adapted. This runs once per full scene render, not per frame.
       onRender: (context) =>
-        untracked(() =>
-          onRender?.({
+        untracked(() => {
+          const rendered = config.toRenderContext({
             ...context,
             interaction: adaptInteraction(context.interaction),
-          }),
-        ),
+          })
+          onRender?.(rendered)
+          host.rendered.emit(rendered)
+        }),
       onFocusChange: (point) =>
         untracked(() => {
           onFocusChange?.(point)
-          config.focusChange.emit(point)
+          host.focusChange.emit(point)
         }),
       onFocusGroupChange: (points) =>
         untracked(() => {
           onFocusGroupChange?.(points)
-          config.focusGroupChange.emit(points)
+          host.focusGroupChange.emit(points)
         }),
       onSelect: (point) =>
         untracked(() => {
           onSelect?.(point)
-          config.pointSelect.emit(point)
+          host.pointSelect.emit(point)
         }),
       onTooltipBodyChange: config.tooltipBody()?.render,
     } satisfies ChartRendererHostOptions<TDatum, TXValue, TYValue>
@@ -115,30 +178,28 @@ export function injectChartHost<
     () => options().height ?? (layout().aspectRatio === undefined ? 320 : null),
   )
   const getAdapter = injectChartRendererAdapter(options)
-  const updateOptions = () => {
+  let mounted = false
+  const render = () => {
     const current = options()
     const surface = config.surface()
     if (!surface) return
     untracked(() => {
       const adapter = getAdapter()
       adapter.update(current)
-      if (isServer)
+      if (isServer) {
         domRenderer.setProperty(
           surface.nativeElement,
           'innerHTML',
           adapter.prerender(),
         )
+      } else if (!mounted) {
+        mounted = true
+        adapter.mount(surface.nativeElement)
+      }
     })
   }
   // The core measures and writes DOM together; only scheduling differs by platform.
-  if (isServer) config.serverRender(updateOptions)
-  else afterRenderEffect({ mixedReadWrite: updateOptions })
-  afterNextRender({
-    mixedReadWrite: () =>
-      untracked(() => {
-        const surface = config.surface()
-        if (surface) getAdapter().mount(surface.nativeElement)
-      }),
-  })
+  if (isServer) serverRender(render)
+  else afterRenderEffect({ mixedReadWrite: render })
   return { layout, height }
 }

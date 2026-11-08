@@ -369,6 +369,7 @@ Each entry records:
 | F-330 | Angular chart queries retained optional tooltip rendering        | API                   | resolved   |
 | F-331 | Angular tooltip bodies lagged the core's synchronous positioning | API                   | resolved   |
 | F-332 | Angular template type tests ran in no gate                       | Tooling               | resolved   |
+| F-333 | Angular chart components and host split one render protocol      | Application           | resolved   |
 
 ## Findings
 
@@ -9878,3 +9879,39 @@ Each entry records:
   compiled example tests.
 - Verification: `pnpm --filter @tanstack/angular-charts typecheck` passes. It
   reports TS2339 when a type-test template reads a missing datum field.
+
+### F-333 - Angular chart components and host split one render protocol
+
+- Status: resolved
+- Severity: low
+- Owner: Application
+- Observed in: reviewing the Angular adapter's composition after F-330
+- Friction: SVG and Canvas differ only in their renderer and render context,
+  yet each component also stripped and copied options, wrapped `onRender`,
+  emitted `rendered` and injected the server strategy. The host emitted the
+  other three outputs from a second copy of the options, and it split mount
+  and update between `afterNextRender` and `afterRenderEffect`. Two more limits
+  showed up in the change. Core renderer slots use `NoInfer`, so passing
+  `canvasChartRenderer` directly inferred `unknown` chart types. Angular also
+  does not expose whether an output has listeners, so the render context is
+  adapted even when nobody reads it.
+- Decision: components pass `this` plus a renderer entry with an id, their
+  queries, a renderer resolver and a render-context adapter. The host owns one
+  options computed, all four outputs, the server strategy and one
+  `afterRenderEffect` that updates and then mounts once, as React's layout
+  effect does. The renderer is a signal: core remounts the surface when its
+  identity changes, so SVG derives it from a `renderSvg` computed whose
+  equality check stops unrelated option updates. A module-level cache keyed by
+  render function was tried first and rejected: it shared mutable state across
+  instances, applications and SSR requests. Typed renderer helpers keep chart
+  type inference.
+  The context is still adapted on every render: that only happens on full scene
+  renders, and detecting listeners would need private Angular state or an
+  Observable-backed output that costs more than it saves.
+- Verification: strict template type tests, twenty-one compiled Angular tests,
+  the production Chromium comparison (SSR and Canvas hydration, tooltips,
+  cleanup and remount), the root typecheck and format checks pass. Measured with
+  `measure-adapter-size.mjs` against `3edb4532`, gzip sizes shrink for SVG
+  (1,890 to 1,822), SVG with a custom tooltip (3,431 to 3,359), Canvas
+  (1,722 to 1,676), both renderers (2,086 to 1,996) and the directive
+  (2,158 to 2,145). The server entry is unchanged.

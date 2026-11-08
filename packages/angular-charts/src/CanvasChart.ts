@@ -2,10 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   ViewEncapsulation,
-  computed,
   contentChild,
   input,
-  inject,
   output,
   viewChild,
 } from '@angular/core'
@@ -13,15 +11,31 @@ import type { ElementRef } from '@angular/core'
 import { canvasChartRenderer } from '@tanstack/charts/canvas'
 import type {
   ChartPoint,
+  ChartRenderer,
   ChartRendererRenderContext,
   ChartValue,
 } from '@tanstack/charts'
 import { CHART_TOOLTIP_BODY } from './tooltip/chart-tooltip-body-token'
 import type { ChartTooltipBodyRenderer } from './tooltip/chart-tooltip-body-token'
-import { CHART_SERVER_RENDER } from './server/chart-server-render'
 import { chartHostBindings, chartHostTemplate } from './host/chart-host'
 import { injectChartHost } from './host/inject-chart-host'
 import type { CanvasChartOptions as ChartOptions } from './canvas-types'
+
+function canvasRenderer<
+  TDatum,
+  TXValue extends ChartValue,
+  TYValue extends ChartValue,
+>(): ChartRenderer<TDatum, TXValue, TYValue> {
+  return canvasChartRenderer
+}
+
+function canvasRenderContext<
+  TDatum,
+  TXValue extends ChartValue,
+  TYValue extends ChartValue,
+>(context: ChartRendererRenderContext<TDatum, TXValue, TYValue>) {
+  return context
+}
 
 @Component({
   selector: 'div[tanstack-canvas-chart]',
@@ -47,27 +61,11 @@ export class CanvasChart<
     contentChild<ChartTooltipBodyRenderer<TDatum, TXValue, TYValue>>(
       CHART_TOOLTIP_BODY,
     )
-  readonly #rendererOptions = computed(() => {
-    const { onRender, ...options } = this.options()
-    return {
-      ...options,
-      renderer: canvasChartRenderer,
-      onRender: (
-        context: ChartRendererRenderContext<TDatum, TXValue, TYValue>,
-      ) => {
-        onRender?.(context)
-        this.rendered.emit(context)
-      },
-    }
-  })
-  protected readonly host = injectChartHost({
-    serverRender: inject(CHART_SERVER_RENDER),
-    options: this.#rendererOptions,
+  protected readonly host = injectChartHost(this, {
+    id: 'canvas',
     surface: this.surface,
     tooltipBody: this.tooltipBody,
-    idNamespace: 'canvas',
-    focusChange: this.focusChange,
-    focusGroupChange: this.focusGroupChange,
-    pointSelect: this.pointSelect,
+    renderer: canvasRenderer<TDatum, TXValue, TYValue>,
+    toRenderContext: canvasRenderContext<TDatum, TXValue, TYValue>,
   })
 }
