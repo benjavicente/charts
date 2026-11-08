@@ -4,27 +4,23 @@ import {
   inputBinding,
   signal,
   untracked,
-} from '@angular/core'
-import type {
-  ComponentRef,
   ViewContainerRef,
-  WritableSignal,
-  Type,
 } from '@angular/core'
+import type { ComponentRef, TemplateRef, WritableSignal } from '@angular/core'
 import type { ChartTooltipBodyTarget, ChartValue } from '@tanstack/charts'
-import type { ChartTooltipBodyComponent } from './chart-tooltip-body.component'
-import type { ChartTooltipBodyDirective } from './chart-tooltip-body.directive'
+import { ChartTooltipBodyComponent } from './chart-tooltip-body.component'
+import type { ChartTooltipBodyTemplateContext } from '../types'
 
 export function injectChartTooltipBody<
   TDatum,
   TXValue extends ChartValue,
   TYValue extends ChartValue,
 >(
-  container: () => ViewContainerRef,
-  directive: () =>
-    ChartTooltipBodyDirective<TDatum, TXValue, TYValue> | undefined,
-  bodyComponent: Type<ChartTooltipBodyComponent<TDatum, TXValue, TYValue>>,
+  template: TemplateRef<
+    ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
+  >,
 ) {
+  const container = inject(ViewContainerRef)
   let body:
     | {
         ref: ComponentRef<ChartTooltipBodyComponent<TDatum, TXValue, TYValue>>
@@ -57,12 +53,15 @@ export function injectChartTooltipBody<
       }
       // Each body owns a non-null target signal for exactly its view lifetime.
       const currentTarget = signal(target)
-      const ref = container().createComponent(bodyComponent, {
-        bindings: [
-          inputBinding('target', currentTarget),
-          inputBinding('template', () => directive()?.templateRef ?? null),
-        ],
-      })
+      const ref = container.createComponent(
+        ChartTooltipBodyComponent<TDatum, TXValue, TYValue>,
+        {
+          bindings: [
+            inputBinding('target', currentTarget),
+            inputBinding('template', () => template),
+          ],
+        },
+      )
       target.element.append(ref.location.nativeElement)
       body = { ref, target: currentTarget }
     })

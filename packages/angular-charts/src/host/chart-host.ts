@@ -13,6 +13,5 @@ export const chartHostTemplate = `
       class="ts-chart-surface"
       style="width: 100%; height: 100%"
     ></div>
-    <ng-template #tooltipOutlet />
     <ng-content select="ng-template[tanstackChartTooltipBody]" />
   `

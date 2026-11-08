@@ -9,12 +9,7 @@ import {
   inject,
   untracked,
 } from '@angular/core'
-import type {
-  ElementRef,
-  OutputEmitterRef,
-  ViewContainerRef,
-  Type,
-} from '@angular/core'
+import type { ElementRef, OutputEmitterRef } from '@angular/core'
 import { resolveChartAdapterLayout } from '@tanstack/charts/adapter'
 import type {
   ChartInteractionController,
@@ -22,10 +17,8 @@ import type {
   ChartRendererHostOptions,
   ChartValue,
 } from '@tanstack/charts'
-import type { ChartTooltipBodyDirective } from '../tooltip/chart-tooltip-body.directive'
+import type { ChartTooltipBodyRenderer } from '../tooltip/chart-tooltip-body-token'
 import { injectChartRendererAdapter } from './inject-chart-renderer-adapter'
-import { injectChartTooltipBody } from '../tooltip/inject-chart-tooltip-body'
-import type { ChartTooltipBodyComponent } from '../tooltip/chart-tooltip-body.component'
 import type { ChartServerRenderStrategy } from '../server/chart-server-render'
 
 @Injectable({ providedIn: 'root' })
@@ -50,10 +43,8 @@ export function injectChartHost<
   serverRender: ChartServerRenderStrategy
   options: () => ChartRendererHostOptions<TDatum, TXValue, TYValue>
   surface: () => ElementRef<HTMLElement> | undefined
-  tooltipOutlet: () => ViewContainerRef
-  tooltipDirective: () =>
-    ChartTooltipBodyDirective<TDatum, TXValue, TYValue> | undefined
-  tooltipComponent: Type<ChartTooltipBodyComponent<TDatum, TXValue, TYValue>>
+  tooltipBody: () =>
+    ChartTooltipBodyRenderer<TDatum, TXValue, TYValue> | undefined
   idNamespace: string
   focusChange: OutputEmitterRef<ChartPoint<TDatum, TXValue, TYValue> | null>
   focusGroupChange: OutputEmitterRef<
@@ -64,11 +55,6 @@ export function injectChartHost<
   const domRenderer = inject(Renderer2)
   const isServer = inject(PLATFORM_ID) === 'server'
   const generatedId = inject(ChartIdGenerator).next(config.idNamespace)
-  const tooltipBody = injectChartTooltipBody(
-    config.tooltipOutlet,
-    config.tooltipDirective,
-    config.tooltipComponent,
-  )
   const interactions = new WeakMap<
     ChartInteractionController<TDatum, TXValue, TYValue>,
     ChartInteractionController<TDatum, TXValue, TYValue>
@@ -121,7 +107,7 @@ export function injectChartHost<
           onSelect?.(point)
           config.pointSelect.emit(point)
         }),
-      onTooltipBodyChange: config.tooltipDirective() ? tooltipBody : undefined,
+      onTooltipBodyChange: config.tooltipBody()?.render,
     } satisfies ChartRendererHostOptions<TDatum, TXValue, TYValue>
   })
   const layout = computed(() => resolveChartAdapterLayout(options()))

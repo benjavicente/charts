@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ViewContainerRef,
   ViewEncapsulation,
   computed,
   contentChild,
@@ -17,11 +16,11 @@ import type {
   ChartRendererRenderContext,
   ChartValue,
 } from '@tanstack/charts'
-import { ChartTooltipBodyDirective } from './tooltip/chart-tooltip-body.directive'
+import { CHART_TOOLTIP_BODY } from './tooltip/chart-tooltip-body-token'
+import type { ChartTooltipBodyRenderer } from './tooltip/chart-tooltip-body-token'
 import { CHART_SERVER_RENDER } from './server/chart-server-render'
 import { chartHostBindings, chartHostTemplate } from './host/chart-host'
 import { injectChartHost } from './host/inject-chart-host'
-import { ChartTooltipBodyComponent } from './tooltip/chart-tooltip-body.component'
 import type { CanvasChartOptions as ChartOptions } from './canvas-types'
 
 @Component({
@@ -44,12 +43,10 @@ export class CanvasChart<
     output<readonly ChartPoint<TDatum, TXValue, TYValue>[]>()
   readonly pointSelect = output<ChartPoint<TDatum, TXValue, TYValue> | null>()
   protected readonly surface = viewChild<ElementRef<HTMLElement>>('surface')
-  protected readonly tooltipBodyDirective = contentChild<
-    ChartTooltipBodyDirective<TDatum, TXValue, TYValue>
-  >(ChartTooltipBodyDirective)
-  protected readonly tooltipOutlet = viewChild.required('tooltipOutlet', {
-    read: ViewContainerRef,
-  })
+  protected readonly tooltipBody =
+    contentChild<ChartTooltipBodyRenderer<TDatum, TXValue, TYValue>>(
+      CHART_TOOLTIP_BODY,
+    )
   readonly #rendererOptions = computed(() => {
     const { onRender, ...options } = this.options()
     return {
@@ -67,9 +64,7 @@ export class CanvasChart<
     serverRender: inject(CHART_SERVER_RENDER),
     options: this.#rendererOptions,
     surface: this.surface,
-    tooltipOutlet: this.tooltipOutlet,
-    tooltipDirective: this.tooltipBodyDirective,
-    tooltipComponent: ChartTooltipBodyComponent<TDatum, TXValue, TYValue>,
+    tooltipBody: this.tooltipBody,
     idNamespace: 'canvas',
     focusChange: this.focusChange,
     focusGroupChange: this.focusGroupChange,

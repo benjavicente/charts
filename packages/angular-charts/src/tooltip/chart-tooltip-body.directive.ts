@@ -1,9 +1,21 @@
 import { Directive, TemplateRef, inject, input } from '@angular/core'
 import type { ChartDefinition, ChartValue } from '@tanstack/charts'
 import type { ChartTooltipBodyTemplateContext } from '../types'
+import { CHART_TOOLTIP_BODY } from './chart-tooltip-body-token'
+import { injectChartTooltipBody } from './inject-chart-tooltip-body'
 
 @Directive({
   selector: 'ng-template[tanstackChartTooltipBody]',
+  providers: [
+    {
+      provide: CHART_TOOLTIP_BODY,
+      useFactory: () => ({
+        render: injectChartTooltipBody(
+          inject(ChartTooltipBodyDirective).templateRef,
+        ),
+      }),
+    },
+  ],
 })
 export class ChartTooltipBodyDirective<
   TDatum = unknown,

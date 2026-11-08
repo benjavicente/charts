@@ -80,12 +80,10 @@ const chartTooltipBodyTemplate = `
         }
       }
     </ng-template>
-    @if (template(); as body) {
-      <ng-container
-        [ngTemplateOutlet]="body"
-        [ngTemplateOutletContext]="context(defaultBody)"
-      />
-    }
+    <ng-container
+      [ngTemplateOutlet]="template()"
+      [ngTemplateOutletContext]="context(defaultBody)"
+    />
   `
 
 @Component({
@@ -102,9 +100,10 @@ export class ChartTooltipBodyComponent<
 > {
   readonly target =
     input.required<ChartTooltipBodyTarget<TDatum, TXValue, TYValue>>()
-  readonly template = input<TemplateRef<
-    ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>
-  > | null>(null)
+  readonly template =
+    input.required<
+      TemplateRef<ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>>
+    >()
 
   protected isText(content: ChartTooltipContent | string): content is string {
     return typeof content === 'string'

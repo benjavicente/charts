@@ -133,17 +133,19 @@ class TooltipHost {
   imports: [Chart, ChartTooltipBodyDirective, NgTemplateOutlet, TooltipChild],
   template: `
     <div tanstack-chart [options]="options()">
-      <ng-template
-        [tanstackChartTooltipBody]="options().definition"
-        let-context
-      >
-        <section data-rich-tooltip>
-          <ng-container [ngTemplateOutlet]="context.defaultBody" />
-          <div tanstack-chart [options]="nestedOptions()"></div>
-          <test-tooltip-child />
-          <button (click)="context.dismiss()">Dismiss</button>
-        </section>
-      </ng-template>
+      @if (body()) {
+        <ng-template
+          [tanstackChartTooltipBody]="options().definition"
+          let-context
+        >
+          <section data-rich-tooltip>
+            <ng-container [ngTemplateOutlet]="context.defaultBody" />
+            <div tanstack-chart [options]="nestedOptions()"></div>
+            <test-tooltip-child />
+            <button (click)="context.dismiss()">Dismiss</button>
+          </section>
+        </ng-template>
+      }
     </div>
   `,
 })
@@ -423,6 +425,53 @@ describe('signal Angular adapter', () => {
     expect(childDestroys).toBe(2)
   })
 
+  it('destroys a directive-owned portaled body and restores it without changing focus', async () => {
+    childDestroys = 0
+    TestBed.configureTestingModule({
+      imports: [PortaledTooltipHost],
+      providers: [provideZonelessChangeDetection()],
+    })
+    const fixture = TestBed.createComponent(PortaledTooltipHost)
+    const host = fixture.componentInstance
+    host.options.update((options) => ({
+      ...options,
+      definition: defineChart(definition, {
+        tooltip: { use: tooltip, portal, format: (point) => point.datum.id },
+      }),
+    }))
+    await fixture.whenStable()
+    const svg: SVGSVGElement = fixture.nativeElement.querySelector('svg')
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 0, 480, 260),
+    )
+    host.focus('a', true)
+    await fixture.whenStable()
+    const tooltipElement = document.querySelector<HTMLElement>(
+      '[data-ts-chart-tooltip-portal]',
+    )!
+    const originalBody = tooltipElement.querySelector('[data-rich-tooltip]')!
+    const nestedSvg = originalBody.querySelector('svg')!
+    expect(originalBody.textContent).toContain('a')
+    host.body.set(undefined)
+    await fixture.whenStable()
+    expect(originalBody.isConnected).toBe(false)
+    expect(nestedSvg.isConnected).toBe(false)
+    expect(tooltipElement.querySelector('[data-rich-tooltip]')).toBeNull()
+    expect(tooltipElement.hidden).toBe(false)
+    expect(tooltipElement.textContent).toBe('a')
+    expect(childDestroys).toBe(1)
+    host.body.set('first')
+    await fixture.whenStable()
+    const restored = tooltipElement.querySelector('[data-rich-tooltip]')!
+    expect(restored).not.toBe(originalBody)
+    expect(restored.textContent).toContain('a')
+    expect(restored.querySelector('svg')).not.toBe(nestedSvg)
+    fixture.destroy()
+    expect(restored.isConnected).toBe(false)
+    expect(tooltipElement.isConnected).toBe(false)
+    expect(childDestroys).toBe(2)
+  })
+
   it('updates an active tooltip view and releases it on hide, reopen and dismiss', async () => {
     childDestroys = 0
     const fixture = await mount()
@@ -569,8 +618,12 @@ describe('signal Angular adapter', () => {
     await fixture.whenStable()
     expect(fixture.nativeElement.querySelector('[data-primary]')).toBeNull()
     expect(childDestroys).toBe(2)
+    // Restore while the existing point remains focused, without a new focus event.
     host.body.set('first')
     await fixture.whenStable()
+    expect(
+      fixture.nativeElement.querySelector('[data-primary]')?.textContent,
+    ).toBe('a')
     host.focus('b')
     await fixture.whenStable()
     expect(
