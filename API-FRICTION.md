@@ -368,6 +368,7 @@ Each entry records:
 | F-329 | Angular SSR serialized unchanged markup after callback updates | API | resolved |
 | F-330 | Angular chart queries retained optional tooltip rendering | API | resolved |
 | F-331 | Angular tooltip bodies lagged the core's synchronous positioning | API | resolved |
+| F-332 | Angular template type tests ran in no gate | Tooling | resolved |
 
 ## Findings
 
@@ -9860,3 +9861,20 @@ Each entry records:
   each focus change for inline SVG, a portaled SVG tooltip and Canvas. It fails
   without the flush and passes with it. All twenty-one compiled Angular tests
   pass.
+
+### F-332 - Angular template type tests ran in no gate
+
+- Status: resolved
+- Severity: low
+- Owner: Tooling
+- Observed in: reviewing the Angular adapter rework
+- Friction: the Angular `*.type-test.ts` files assert template inference and
+  `@ts-expect-error` cases, but the root `tsc` typecheck does not check
+  templates and `tsconfig.lib.json` excludes the files from the package build.
+  They passed only when compiled by hand.
+- Decision: add `tsconfig.type-test.json`, which compiles the sources and type
+  tests with `ngc` in full mode with strict templates and no emit. The package's
+  `typecheck` script runs it, and `test-angular` runs that script before the
+  compiled example tests.
+- Verification: `pnpm --filter @tanstack/angular-charts typecheck` passes. It
+  reports TS2339 when a type-test template reads a missing datum field.

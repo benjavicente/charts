@@ -66,6 +66,7 @@
     }
   },
   "scripts": {
-    "build": "vite build && node ../../scripts/finalize-angular-package.mjs"
+    "build": "vite build && node ../../scripts/finalize-angular-package.mjs",
+    "typecheck": "ngc -p tsconfig.type-test.json"
   }
 }

@@ -220,7 +220,7 @@
     "test-angular": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --filter @charts-internal/angular-example test"
+        "command": "pnpm --filter @tanstack/angular-charts typecheck && pnpm --filter @charts-internal/angular-example test"
       }
     },
     "angular-app-build": {
