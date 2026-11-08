@@ -367,6 +367,7 @@ Each entry records:
 | F-328 | Chrome trace exports rejected the active workspace root | Tooling | monitoring |
 | F-329 | Angular SSR serialized unchanged markup after callback updates | API | resolved |
 | F-330 | Angular chart queries retained optional tooltip rendering | API | resolved |
+| F-331 | Angular tooltip bodies lagged the core's synchronous positioning | API | resolved |
 
 ## Findings
 
@@ -9835,3 +9836,27 @@ Each entry records:
   4,844 gzip bytes; ordinary core tooltips save 4,891; custom Angular templates
   cost 631 more bytes. Output assertions prove the body component drops only in
   the intended cases. Samples: `benchmarks/comparison/angular-adapters/2026-10-28-tooltip.json`.
+
+### F-331 - Angular tooltip bodies lagged the core's synchronous positioning
+
+- Status: resolved
+- Severity: medium
+- Owner: API
+- Observed in: reviewing the Angular tooltip ownership rework (F-330) against
+  React issue #239 and PR #240
+- Friction: the core calls `onTooltipBodyChange` and then measures and places
+  the tooltip in the same task. The Angular body only wrote its target signal,
+  so its view rendered at the next change detection. A probe read the body
+  right after `setControlledFocus`: it was empty on first show and still showed
+  the previous point after a move. The tooltip was sized from that stale body
+  and only corrected by its `ResizeObserver` one frame later. Every adapter
+  whose framework renders asynchronously must flush the body inside the
+  callback; React has the same defect.
+- Decision: keep the core contract and fix it in the Angular adapter. The body
+  helper runs `detectChanges()` on its own component view after creating it or
+  updating its target. That checks only the body view and does not run the
+  application's change detection.
+- Verification: a compiled Angular test reads the body synchronously after
+  each focus change for inline SVG, a portaled SVG tooltip and Canvas. It fails
+  without the flush and passes with it. All twenty-one compiled Angular tests
+  pass.

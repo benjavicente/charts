@@ -19,6 +19,7 @@ import type {
 import { Chart, ChartTooltipBodyDirective } from '@tanstack/charts/angular'
 import { Chart as CanvasChart } from '@tanstack/charts/angular/canvas'
 import type { ChartOptions } from '@tanstack/charts/angular'
+import type { ChartOptions as CanvasChartOptions } from '@tanstack/charts/angular/canvas'
 
 const rows = [
   { id: 'a', x: 0, y: 2 },
@@ -189,6 +190,40 @@ class OutputHost extends TooltipHost {
     this.focusOrder.push('output')
     this.focused.push(point)
     this.outputLocales.push(this.locale())
+  }
+}
+
+@Component({
+  imports: [CanvasChart, ChartTooltipBodyDirective],
+  template: `
+    <div tanstack-canvas-chart [options]="options()">
+      <ng-template
+        [tanstackChartTooltipBody]="options().definition"
+        let-context
+      >
+        <span data-primary>{{ context.primaryPoint?.datum?.id }}</span>
+      </ng-template>
+    </div>
+  `,
+})
+class CanvasTooltipHost {
+  controller?: ChartInteractionController<Datum, number, number>
+  points: readonly ChartPoint<Datum, number, number>[] = []
+  readonly options = signal<CanvasChartOptions<Datum, number, number>>({
+    definition,
+    width: 480,
+    height: 260,
+    ariaLabel: 'Canvas revenue',
+    onRender: ({ interaction, scene }) => {
+      this.controller = interaction
+      this.points = scene.points
+    },
+  })
+
+  focus(id: string, pinned = false) {
+    const point = this.points.find((candidate) => candidate.datum.id === id)
+    if (!point || !this.controller) throw new Error('Chart has not mounted')
+    this.controller.setControlledFocus(point, { pinned })
   }
 }
 
@@ -470,6 +505,89 @@ describe('signal Angular adapter', () => {
     expect(restored.isConnected).toBe(false)
     expect(tooltipElement.isConnected).toBe(false)
     expect(childDestroys).toBe(2)
+  })
+
+  it('renders the body before the core measures and positions the tooltip', async () => {
+    const primary = (root: ParentNode) =>
+      root.querySelector('[data-primary]')?.textContent
+    const expectSynchronous = async (
+      fixture: { whenStable(): Promise<unknown> },
+      focus: (id: string) => void,
+      root: () => ParentNode,
+    ) => {
+      // The core positions the tooltip inside the focus call, so the body must
+      // already reflect the new point when that call returns.
+      focus('a')
+      expect(primary(root())).toBe('a')
+      await fixture.whenStable()
+      focus('b')
+      expect(primary(root())).toBe('b')
+      await fixture.whenStable()
+      expect(primary(root())).toBe('b')
+    }
+
+    const svgFixture = await mount()
+    await expectSynchronous(
+      svgFixture,
+      (id) => svgFixture.componentInstance.focus(id),
+      () => svgFixture.nativeElement,
+    )
+    TestBed.resetTestingModule()
+
+    TestBed.configureTestingModule({
+      imports: [PortaledTooltipHost],
+      providers: [provideZonelessChangeDetection()],
+    })
+    const portaled = TestBed.createComponent(PortaledTooltipHost)
+    portaled.componentInstance.options.update((options) => ({
+      ...options,
+      definition: defineChart(definition, {
+        tooltip: { use: tooltip, portal, format: (point) => point.datum.id },
+      }),
+    }))
+    await portaled.whenStable()
+    const svg: SVGSVGElement = portaled.nativeElement.querySelector('svg')
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 0, 480, 260),
+    )
+    const portalBody = () =>
+      document.querySelector<HTMLElement>('[data-ts-chart-tooltip-portal]')!
+    portaled.componentInstance.focus('a', true)
+    expect(
+      portalBody().querySelector('[data-rich-tooltip]')?.textContent,
+    ).toContain('a')
+    await portaled.whenStable()
+    portaled.componentInstance.focus('b', true)
+    expect(
+      portalBody().querySelector('[data-rich-tooltip]')?.textContent,
+    ).toContain('b')
+    portaled.destroy()
+    TestBed.resetTestingModule()
+
+    TestBed.configureTestingModule({
+      imports: [CanvasTooltipHost],
+      providers: [provideZonelessChangeDetection()],
+    })
+    // jsdom has no Canvas 2D context; every drawing call is a no-op.
+    const noop = () => ({ addColorStop() {}, width: 0 })
+    const getContext = vi
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockImplementation(
+        () =>
+          new Proxy({} as CanvasRenderingContext2D, {
+            get: (target, key) =>
+              key in target ? Reflect.get(target, key) : noop,
+          }),
+      )
+    const canvas = TestBed.createComponent(CanvasTooltipHost)
+    await canvas.whenStable()
+    await expectSynchronous(
+      canvas,
+      (id) => canvas.componentInstance.focus(id),
+      () => canvas.nativeElement,
+    )
+    canvas.destroy()
+    getContext.mockRestore()
   })
 
   it('updates an active tooltip view and releases it on hide, reopen and dismiss', async () => {

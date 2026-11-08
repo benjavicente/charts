@@ -47,8 +47,11 @@ export function injectChartTooltipBody<
         body.ref.location.nativeElement.parentElement !== target.element
       )
         clear()
+      // The core measures and positions the tooltip right after this callback,
+      // so the body view must reflect the target synchronously.
       if (body) {
         body.target.set(target)
+        body.ref.changeDetectorRef.detectChanges()
         return
       }
       // Each body owns a non-null target signal for exactly its view lifetime.
@@ -64,5 +67,6 @@ export function injectChartTooltipBody<
       )
       target.element.append(ref.location.nativeElement)
       body = { ref, target: currentTarget }
+      ref.changeDetectorRef.detectChanges()
     })
 }
