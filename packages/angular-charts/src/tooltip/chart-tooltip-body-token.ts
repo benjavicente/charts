@@ -11,5 +11,5 @@ export interface ChartTooltipBodyRenderer<
 }
 
 export const CHART_TOOLTIP_BODY = new InjectionToken<ChartTooltipBodyRenderer>(
-  '',
+  typeof ngDevMode === 'undefined' || ngDevMode ? 'CHART_TOOLTIP_BODY' : '',
 )

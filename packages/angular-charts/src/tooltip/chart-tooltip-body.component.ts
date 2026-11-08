@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  viewChild,
+} from '@angular/core'
 import { NgTemplateOutlet } from '@angular/common'
 import type { TemplateRef } from '@angular/core'
 import type {
@@ -82,7 +88,7 @@ const chartTooltipBodyTemplate = `
     </ng-template>
     <ng-container
       [ngTemplateOutlet]="template()"
-      [ngTemplateOutletContext]="context(defaultBody)"
+      [ngTemplateOutletContext]="context()"
     />
   `
 
@@ -105,22 +111,25 @@ export class ChartTooltipBodyComponent<
       TemplateRef<ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue>>
     >()
 
+  protected readonly defaultBody =
+    viewChild.required<TemplateRef<unknown>>('defaultBody')
+
+  protected readonly context = computed(
+    (): ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue> => {
+      const { primaryPoint, points, content, pinned, dismiss } = this.target()
+      const context = {
+        primaryPoint,
+        points,
+        content,
+        pinned,
+        dismiss,
+        defaultBody: this.defaultBody(),
+      }
+      return { ...context, $implicit: context }
+    },
+  )
+
   protected isText(content: ChartTooltipContent | string): content is string {
     return typeof content === 'string'
-  }
-
-  protected context(
-    defaultBody: TemplateRef<unknown>,
-  ): ChartTooltipBodyTemplateContext<TDatum, TXValue, TYValue> {
-    const { primaryPoint, points, content, pinned, dismiss } = this.target()
-    const context = {
-      primaryPoint,
-      points,
-      content,
-      pinned,
-      dismiss,
-      defaultBody,
-    }
-    return { ...context, $implicit: context }
   }
 }

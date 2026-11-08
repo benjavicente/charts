@@ -4,9 +4,12 @@ import { InjectionToken, effect } from '@angular/core'
 export type ChartServerRenderStrategy = (render: () => void) => void
 
 export const CHART_SERVER_RENDER =
-  new InjectionToken<ChartServerRenderStrategy>('', {
-    providedIn: 'root',
-    factory: () => (render) => {
-      effect(render)
+  new InjectionToken<ChartServerRenderStrategy>(
+    typeof ngDevMode === 'undefined' || ngDevMode ? 'CHART_SERVER_RENDER' : '',
+    {
+      providedIn: 'root',
+      factory: () => (render) => {
+        effect(render)
+      },
     },
-  })
+  )
