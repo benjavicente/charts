@@ -198,10 +198,11 @@ Import `ChartTooltipBodyDirective` from the same entry. Bind the definition to
 ```
 
 Import `NgTemplateOutlet` to render the default body. Every context field,
-including `primaryPoint`, follows the current tooltip target. Angular renders
-projected content in a private component inside the core-owned tooltip body;
-dynamic input bindings follow the current target and projected template without
-a separate synchronization effect. Focus changes retain the embedded view.
+including `primaryPoint`, follows the current tooltip target. The projected
+directive owns its Angular view inside the core-owned tooltip body, with dynamic
+input bindings for the target and template. Importing only `Chart` leaves this
+Angular template renderer out of optimized application bundles. Ordinary core
+tooltips continue to work without the directive. Focus changes retain the embedded view.
 Replacing the template replaces the view. Hiding the tooltip destroys the body
 view, and reopening creates a fresh one, matching the React and Solid adapters.
 The shared core owns placement, portaling, focus, pinning and dismissal.

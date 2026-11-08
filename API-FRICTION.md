@@ -366,6 +366,7 @@ Each entry records:
 | F-327 | Angular secondary entries crossed APF compilation boundaries | Tooling | resolved |
 | F-328 | Chrome trace exports rejected the active workspace root | Tooling | monitoring |
 | F-329 | Angular SSR serialized unchanged markup after callback updates | API | resolved |
+| F-330 | Angular chart queries retained optional tooltip rendering | API | resolved |
 
 ## Findings
 
@@ -2605,6 +2606,12 @@ Each entry records:
   The runner now alternates different deterministic definitions, verifies changed
   point geometry and exactly one synchronous render per chart, bounds scheduled
   callback waits, and records commit plus one- and two-frame proxies separately.
+- Follow-up (2026-10-28): an initial hydration timing fixture configured the
+  server row count but let the browser reuse its module's 100-row default.
+  Root/line reuse alone did not catch the mismatched workload. Seed both sides
+  with the same scenario and assert the client line-plus-dot point count, all
+  retained SVG circles, one browser render, and no hydration errors. Discard the
+  mismatched timings; only the corrected samples belong in the final result.
 
 ### F-079 — Large-data timing hid representation cost
 
@@ -9745,6 +9752,19 @@ Each entry records:
   hydration with exact node reuse, and an Angular 20.0.0 consumer of the linked
   emitted entries pass with both default effects and queued serialization.
 
+- Build-migration follow-up: replace independent ng-packagr entry builds with
+  one Vite/Analog module graph using standard Angular partial compilation.
+  Shared chunks now contain one renderer-neutral tooltip component, directive,
+  and strategy token, without primary self-import rewrites. Source concerns are
+  grouped under host/tooltip/server; tooltip ownership is deliberately unchanged.
+  Analog's initial declaration output omitted pure type modules (`types.ts` and
+  `canvas-types.ts`), because its emit follows runtime module loading. Disable
+  that incomplete emit and use Angular's compiler for the full declaration graph.
+  The emitted-entry check requires one tooltip definition and a browser graph
+  free of platform-server. Nineteen Angular tests, seven package gates, strict
+  Angular 20 valid/invalid tooltip templates, Angular 20 linked runtime and
+  production hydration checks pass.
+
 ### F-328 - Chrome trace exports rejected the active workspace root
 
 - Status: monitoring
@@ -9787,5 +9807,31 @@ Each entry records:
   SVG/Canvas data and dimensions, destroyed charts, and concurrent application
   isolation. Emitted package checks verify token identity, duplicate providers,
   cleanup and errors; Angular 20/22 runtime and production hydration node reuse
-  pass. Implemented in `177cf0b7`. The earlier timings remain baseline evidence;
-  optional-provider latency and size have not been measured.
+  pass. Implemented in `177cf0b7`. A matched emitted-package follow-up measures
+  callback-only requests at 214.03 → 123.05 ms and late-data requests at
+  218.47 → 124.45 ms, with identical final SVG and one queued serialization.
+  Initial-data SSR remains similar. The final result retains all samples in
+  `benchmarks/comparison/angular-adapters/2026-10-28-final.json`.
+
+### F-330 - Angular chart queries retained optional tooltip rendering
+
+- Status: resolved
+- Severity: medium
+- Owner: API
+- Observed in: implementing the measured Angular tooltip tree-shaking follow-up
+- Friction: querying the concrete projected directive and supplying a tooltip
+  component from each chart made Angular rendering mandatory even without a
+  custom body. The chart also owned an outlet for content declared elsewhere.
+- Decision: query a lightweight private token. The directive's node provider
+  owns its binding helper/component via `ViewContainerRef`; its callback lifetime
+  is tied to the directive. Existing core callback-identity handling supplies
+  target replacement and cleanup without a synchronization effect or registry.
+  Keep the public template binding and type witness unchanged.
+- Verification: twenty compiled Angular tests, Angular 20 strict typing and
+  emitted SSR/browser runtime, seven package gates, and production Chromium
+  hydration/tooltip checks pass. Tests cover portaled removal and restoration
+  without new focus, nested cleanup and stable active views. Matched size runs
+  against `51e96bc9` retain identical controls and fixture hashes. Plain SVG saves
+  4,844 gzip bytes; ordinary core tooltips save 4,891; custom Angular templates
+  cost 631 more bytes. Output assertions prove the body component drops only in
+  the intended cases. Samples: `benchmarks/comparison/angular-adapters/2026-10-28-tooltip.json`.

@@ -1,0 +1,561 @@
+{
+  "date": "2026-10-28T23:14:24.229Z",
+  "baselineCommit": "51e96bc928760cd88e5c2f13731ba3ef47788a4f",
+  "comparison": "Committed Vite/Analog build versus directive-owned tooltip working tree; same production AOT fixtures, Angular and core. No minifier or dependency changes.",
+  "before": {
+    "environment": {
+      "date": "2026-10-28T23:14:19.407Z",
+      "baseline": "778f2cc6",
+      "consumption": "linked APF artifacts",
+      "adapterDirectory": "/Users/bv/Repos/charts/examples/charts-angular/.benchmark-output/tooltip-before/angular-charts/dist",
+      "adapterSha256": {
+        "tanstack-angular-charts-canvas.mjs": "a8d7d06b3e13cb327845bf03df6820393221c6f2cf4d64952aa82a33d6bef829",
+        "tanstack-angular-charts-server.mjs": "f9c8b3222720fe62434b647dcdc20549a3a253f3131fb9c71eb8d7e13d5f0aae",
+        "tanstack-angular-charts.mjs": "af36e538766594c9b1bec9d8a0a019fc99dab019003a22f861c4273ceaea7487"
+      },
+      "head": "51e96bc928760cd88e5c2f13731ba3ef47788a4f",
+      "node": "v24.17.0",
+      "angular": "22.0.8",
+      "cli": "22.2.2",
+      "os": "darwin 25.4.0",
+      "cpu": "Apple M1",
+      "gc": true
+    },
+    "bundles": {
+      "empty": {
+        "attribution": [],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 103969,
+            "gzip": 34664,
+            "brotli": 31271
+          }
+        ],
+        "raw": 103969,
+        "gzip": 34664,
+        "brotli": 31271
+      },
+      "legacy": {
+        "attribution": [],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 249806,
+            "gzip": 85866,
+            "brotli": 76133
+          }
+        ],
+        "raw": 249806,
+        "gzip": 85866,
+        "brotli": 76133
+      },
+      "current": {
+        "attribution": [
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.component-CC1km5px.mjs",
+            "bytes": 5930
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/tanstack-angular-charts.mjs",
+            "bytes": 2145
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 262611,
+            "gzip": 89937,
+            "brotli": 79467
+          }
+        ],
+        "raw": 262611,
+        "gzip": 89937,
+        "brotli": 79467
+      },
+      "canvas": {
+        "attribution": [
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.component-CC1km5px.mjs",
+            "bytes": 5930
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/tanstack-angular-charts-canvas.mjs",
+            "bytes": 1833
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 268655,
+            "gzip": 91174,
+            "brotli": 80214
+          }
+        ],
+        "raw": 268655,
+        "gzip": 91174,
+        "brotli": 80214
+      },
+      "both": {
+        "attribution": [
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.component-CC1km5px.mjs",
+            "bytes": 5930
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/tanstack-angular-charts.mjs",
+            "bytes": 2145
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/tanstack-angular-charts-canvas.mjs",
+            "bytes": 1833
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 287488,
+            "gzip": 97011,
+            "brotli": 85031
+          }
+        ],
+        "raw": 287488,
+        "gzip": 97011,
+        "brotli": 85031
+      },
+      "currentDefaultTooltip": {
+        "attribution": [
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.component-CC1km5px.mjs",
+            "bytes": 5930
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/tanstack-angular-charts.mjs",
+            "bytes": 2145
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 274578,
+            "gzip": 94534,
+            "brotli": 82907
+          }
+        ],
+        "raw": 274578,
+        "gzip": 94534,
+        "brotli": 82907
+      },
+      "currentTooltip": {
+        "attribution": [
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.component-CC1km5px.mjs",
+            "bytes": 5930
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/tanstack-angular-charts.mjs",
+            "bytes": 2145
+          },
+          {
+            "path": "../tooltip-before/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 274844,
+            "gzip": 94611,
+            "brotli": 83002
+          }
+        ],
+        "raw": 274844,
+        "gzip": 94611,
+        "brotli": 83002
+      }
+    },
+    "adapterOnly": {
+      "date": "2026-10-28T22:50:09.372Z",
+      "head": "51e96bc928760cd88e5c2f13731ba3ef47788a4f",
+      "angular": "22.0.8",
+      "adapterDirectory": "/Users/bv/Repos/charts/examples/charts-angular/.benchmark-output/tooltip-before/angular-charts/dist/fesm2022",
+      "method": "Angular CLI-linked/optimized APF; minified ES2022; all bare Angular/chart imports external; gzip 9; Brotli 11. Public exports are retained; svgWithTooltip includes the actual directive and renderer.",
+      "results": {
+        "svg": {
+          "raw": 10701,
+          "gzip": 3443,
+          "brotli": 3066
+        },
+        "svgWithTooltip": {
+          "raw": 10732,
+          "gzip": 3450,
+          "brotli": 3071
+        },
+        "canvas": {
+          "raw": 10345,
+          "gzip": 3276,
+          "brotli": 2924
+        },
+        "both": {
+          "raw": 13029,
+          "gzip": 3661,
+          "brotli": 3223
+        },
+        "directive": {
+          "raw": 1184,
+          "gzip": 559,
+          "brotli": 498
+        },
+        "strategy": {
+          "raw": 439,
+          "gzip": 278,
+          "brotli": 237
+        },
+        "server": {
+          "raw": 875,
+          "gzip": 497,
+          "brotli": 427
+        }
+      }
+    }
+  },
+  "after": {
+    "environment": {
+      "date": "2026-10-28T23:14:21.930Z",
+      "baseline": "778f2cc6",
+      "consumption": "linked APF artifacts",
+      "adapterDirectory": "/Users/bv/Repos/charts/packages/angular-charts/dist",
+      "adapterSha256": {
+        "tanstack-angular-charts-canvas.mjs": "f980dc424f72ba78767227d494f996c7cd45fc3658551e094d1522d3cbba3960",
+        "tanstack-angular-charts-server.mjs": "f9c8b3222720fe62434b647dcdc20549a3a253f3131fb9c71eb8d7e13d5f0aae",
+        "tanstack-angular-charts.mjs": "4d5680d224a4adb3ae6ff4aa1314f99ea9466402b74ff4dc44c874d6a2d32be4"
+      },
+      "head": "51e96bc928760cd88e5c2f13731ba3ef47788a4f",
+      "node": "v24.17.0",
+      "angular": "22.0.8",
+      "cli": "22.2.2",
+      "os": "darwin 25.4.0",
+      "cpu": "Apple M1",
+      "gc": true
+    },
+    "bundles": {
+      "empty": {
+        "attribution": [],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 103969,
+            "gzip": 34664,
+            "brotli": 31271
+          }
+        ],
+        "raw": 103969,
+        "gzip": 34664,
+        "brotli": 31271
+      },
+      "legacy": {
+        "attribution": [],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 249806,
+            "gzip": 85866,
+            "brotli": 76133
+          }
+        ],
+        "raw": 249806,
+        "gzip": 85866,
+        "brotli": 76133
+      },
+      "current": {
+        "attribution": [
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/tanstack-angular-charts.mjs",
+            "bytes": 1879
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.directive-Cq6-tN2W.mjs",
+            "bytes": 1553
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 247158,
+            "gzip": 85093,
+            "brotli": 75285
+          }
+        ],
+        "raw": 247158,
+        "gzip": 85093,
+        "brotli": 75285
+      },
+      "canvas": {
+        "attribution": [
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/tanstack-angular-charts-canvas.mjs",
+            "bytes": 1567
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.directive-Cq6-tN2W.mjs",
+            "bytes": 1553
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 253197,
+            "gzip": 86291,
+            "brotli": 76029
+          }
+        ],
+        "raw": 253197,
+        "gzip": 86291,
+        "brotli": 76029
+      },
+      "both": {
+        "attribution": [
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/tanstack-angular-charts.mjs",
+            "bytes": 1879
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/tanstack-angular-charts-canvas.mjs",
+            "bytes": 1567
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.directive-Cq6-tN2W.mjs",
+            "bytes": 1553
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 271815,
+            "gzip": 92246,
+            "brotli": 80875
+          }
+        ],
+        "raw": 271815,
+        "gzip": 92246,
+        "brotli": 80875
+      },
+      "currentDefaultTooltip": {
+        "attribution": [
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/tanstack-angular-charts.mjs",
+            "bytes": 1879
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.directive-Cq6-tN2W.mjs",
+            "bytes": 1553
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 259125,
+            "gzip": 89643,
+            "brotli": 78848
+          }
+        ],
+        "raw": 259125,
+        "gzip": 89643,
+        "brotli": 78848
+      },
+      "currentTooltip": {
+        "attribution": [
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-tooltip-body.directive-Cq6-tN2W.mjs",
+            "bytes": 5857
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/tanstack-angular-charts.mjs",
+            "bytes": 1879
+          },
+          {
+            "path": "../../../../packages/angular-charts/dist/fesm2022/chunks/chart-server-render-zScZnq-S.mjs",
+            "bytes": 60
+          }
+        ],
+        "files": [
+          {
+            "name": "main.js",
+            "raw": 276338,
+            "gzip": 95242,
+            "brotli": 83418
+          }
+        ],
+        "raw": 276338,
+        "gzip": 95242,
+        "brotli": 83418
+      }
+    },
+    "adapterOnly": {
+      "date": "2026-10-28T22:59:46.497Z",
+      "head": "51e96bc928760cd88e5c2f13731ba3ef47788a4f",
+      "angular": "22.0.8",
+      "adapterDirectory": "/Users/bv/Repos/charts/packages/angular-charts/dist/fesm2022",
+      "method": "Angular CLI-linked/optimized APF; minified ES2022; all bare Angular/chart imports external; gzip 9; Brotli 11. Public exports are retained; svgWithTooltip includes the actual directive and renderer.",
+      "results": {
+        "svg": {
+          "raw": 4414,
+          "gzip": 1886,
+          "brotli": 1688
+        },
+        "svgWithTooltip": {
+          "raw": 10312,
+          "gzip": 3369,
+          "brotli": 2994
+        },
+        "canvas": {
+          "raw": 4059,
+          "gzip": 1720,
+          "brotli": 1546
+        },
+        "both": {
+          "raw": 6393,
+          "gzip": 2082,
+          "brotli": 1839
+        },
+        "directive": {
+          "raw": 6694,
+          "gzip": 2078,
+          "brotli": 1818
+        },
+        "strategy": {
+          "raw": 417,
+          "gzip": 262,
+          "brotli": 232
+        },
+        "server": {
+          "raw": 875,
+          "gzip": 497,
+          "brotli": 427
+        }
+      }
+    }
+  },
+  "fixtureSha256": {
+    "empty/App.ts": "58a4a12afd1471158cb5560c3fcad62dec43967daf90cb275bfa74833b20e5f1",
+    "empty/main.ts": "12e55871932707ff53347b1446fc4739bb2e9ea1c5de3ffe1c9442ac0fbfa61b",
+    "empty/main.server.ts": "2d92e106baaf13ac112b01e7ebbaf979ec876a73bb8b60f04d16c71579cadbe1",
+    "legacy/App.ts": "2bbc22ccb9904c5e3ff67158d64d5ff14ed658f5f3317bd65865f242f3bd8ab7",
+    "legacy/main.ts": "12e55871932707ff53347b1446fc4739bb2e9ea1c5de3ffe1c9442ac0fbfa61b",
+    "legacy/main.server.ts": "dc657cf27ea806d2cca2d51207e9363f581d793c18ce68e5681225e88bc554f6",
+    "current/App.ts": "3dc276ebad4bc7734797096ac50ec032155b3acc96726e2cec1692bd26f2f4a6",
+    "current/main.ts": "12e55871932707ff53347b1446fc4739bb2e9ea1c5de3ffe1c9442ac0fbfa61b",
+    "current/main.server.ts": "e429ca17850362c61316bd5798d87b1904b674bd1859ba63423019c416a79219",
+    "canvas/App.ts": "cf31eb7ef8d297bd7b8fa98d7d196980296d7df144d0850f750c43b7493f8a9e",
+    "canvas/main.ts": "12e55871932707ff53347b1446fc4739bb2e9ea1c5de3ffe1c9442ac0fbfa61b",
+    "canvas/main.server.ts": "e429ca17850362c61316bd5798d87b1904b674bd1859ba63423019c416a79219",
+    "both/App.ts": "dc063716727300866cbf659815fc5bca982c508a0086847c7f29d38b4c0373b4",
+    "both/main.ts": "12e55871932707ff53347b1446fc4739bb2e9ea1c5de3ffe1c9442ac0fbfa61b",
+    "both/main.server.ts": "e429ca17850362c61316bd5798d87b1904b674bd1859ba63423019c416a79219",
+    "currentDefaultTooltip/App.ts": "ab17b0aeec105c27e2dfcf221136328d70e8fead0a65269df3639d0074939b44",
+    "currentDefaultTooltip/main.ts": "12e55871932707ff53347b1446fc4739bb2e9ea1c5de3ffe1c9442ac0fbfa61b",
+    "currentDefaultTooltip/main.server.ts": "e429ca17850362c61316bd5798d87b1904b674bd1859ba63423019c416a79219",
+    "currentTooltip/App.ts": "5762f6a11316b251ada5eb022c66a7ec0bbb9ff6d7f10786885134edcaf096e8",
+    "currentTooltip/main.ts": "12e55871932707ff53347b1446fc4739bb2e9ea1c5de3ffe1c9442ac0fbfa61b",
+    "currentTooltip/main.server.ts": "e429ca17850362c61316bd5798d87b1904b674bd1859ba63423019c416a79219"
+  },
+  "angularTooltipRetained": {
+    "before/current": true,
+    "before/canvas": true,
+    "before/both": true,
+    "before/currentDefaultTooltip": true,
+    "before/currentTooltip": true,
+    "after/current": false,
+    "after/canvas": false,
+    "after/both": false,
+    "after/currentDefaultTooltip": false,
+    "after/currentTooltip": true
+  },
+  "deltas": {
+    "empty": {
+      "raw": 0,
+      "gzip": 0,
+      "brotli": 0
+    },
+    "legacy": {
+      "raw": 0,
+      "gzip": 0,
+      "brotli": 0
+    },
+    "current": {
+      "raw": -15453,
+      "gzip": -4844,
+      "brotli": -4182
+    },
+    "canvas": {
+      "raw": -15458,
+      "gzip": -4883,
+      "brotli": -4185
+    },
+    "both": {
+      "raw": -15673,
+      "gzip": -4765,
+      "brotli": -4156
+    },
+    "currentDefaultTooltip": {
+      "raw": -15453,
+      "gzip": -4891,
+      "brotli": -4059
+    },
+    "currentTooltip": {
+      "raw": 1494,
+      "gzip": 631,
+      "brotli": 416
+    }
+  },
+  "coreTooltipRetained": {
+    "before": true,
+    "after": true
+  },
+  "customTemplateRawAttribution": {
+    "before": {
+      "angularCore": 120033,
+      "angularCommon": 1519,
+      "adapter": 8135,
+      "other": 144547
+    },
+    "after": {
+      "angularCore": 121866,
+      "angularCommon": 1519,
+      "adapter": 7796,
+      "other": 144547
+    }
+  }
+}

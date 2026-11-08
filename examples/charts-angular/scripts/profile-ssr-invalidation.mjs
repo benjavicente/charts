@@ -7,7 +7,12 @@ import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 
 const root = resolve(import.meta.dirname, '..')
-const workspace = resolve(root, '.benchmark-output/angular-adapters')
+const apf = process.argv.includes('--apf')
+const workspace = resolve(
+  root,
+  '.benchmark-output',
+  apf ? 'angular-adapters-apf' : 'angular-adapters',
+)
 const output = resolve(root, '.benchmark-output/angular-profiles')
 const directory = resolve(workspace, 'src/ssr-probe')
 await mkdir(directory, { recursive: true })
@@ -85,10 +90,10 @@ let server = await readFile(
 )
 server = server.replace("from '../fixture'", "from '../ssr-probe-fixture'")
 server += `
-export async function renderProbe(mode:string) {
+export async function renderProbe(mode:string, queued:boolean) {
   scenario.mode=mode
   scenario.serializations=0
-  const html=await renderOne(10000,1)
+  const html=await renderOne(10000,1,queued)
   return { serializations:scenario.serializations, html }
 }
 `
@@ -110,48 +115,71 @@ await writeFile(resolve(output, 'ssr-probe-build.log'), stdout + stderr)
 const { renderProbe } = await import(
   pathToFileURL(resolve(workspace, 'dist/ssr-probe/server/main.server.mjs'))
 )
-const results = { none: [], callback: [], data: [] }
-let baselineMarkup
+const modes = ['none', 'callback', 'data']
+const results = Object.fromEntries(
+  ['effect', 'queued'].map((strategy) => [
+    strategy,
+    Object.fromEntries(modes.map((mode) => [mode, []])),
+  ]),
+)
+const baselineMarkup = {}
 for (let iteration = -3; iteration < 20; iteration++) {
-  const order =
-    iteration % 2 ? ['none', 'callback', 'data'] : ['data', 'callback', 'none']
-  for (const mode of order) {
-    global.gc?.()
-    const start = performance.now()
-    const result = await renderProbe(mode)
-    const milliseconds = performance.now() - start
-    assert.equal(result.serializations, mode === 'none' ? 1 : 2)
-    assert.ok(result.html.includes('ts-chart__line'))
-    // APP_ID/ng-server metadata can vary between requests. Compare chart SVG.
-    const svg = result.html.match(/<svg[\s\S]*?<\/svg>/)?.[0]
-    if (mode === 'none') baselineMarkup = svg
-    if (mode === 'callback' && baselineMarkup) assert.equal(svg, baselineMarkup)
-    if (mode === 'data' && baselineMarkup) assert.notEqual(svg, baselineMarkup)
-    if (iteration >= 0)
-      results[mode].push({
-        milliseconds,
-        serializations: result.serializations,
-      })
-  }
+  const order = iteration % 2 ? ['effect', 'queued'] : ['queued', 'effect']
+  for (const strategy of order)
+    for (const mode of modes) {
+      global.gc?.()
+      const start = performance.now()
+      const result = await renderProbe(mode, strategy === 'queued')
+      const milliseconds = performance.now() - start
+      assert.equal(
+        result.serializations,
+        strategy === 'queued' || mode === 'none' ? 1 : 2,
+      )
+      assert.ok(result.html.includes('ts-chart__line'))
+      // APP_ID/ng-server metadata can vary between requests. Compare chart SVG.
+      const svg = result.html.match(/<svg[\s\S]*?<\/svg>/)?.[0]
+      assert.ok(svg)
+      if (mode === 'none') baselineMarkup[strategy] = svg
+      if (mode === 'callback') assert.equal(svg, baselineMarkup[strategy])
+      if (mode === 'data') assert.notEqual(svg, baselineMarkup[strategy])
+      if (strategy === 'effect') baselineMarkup[mode] = svg
+      else if (baselineMarkup[mode]) assert.equal(svg, baselineMarkup[mode])
+      if (iteration >= 0)
+        results[strategy][mode].push({
+          milliseconds,
+          serializations: result.serializations,
+        })
+    }
 }
 const summary = Object.fromEntries(
-  Object.entries(results).map(([mode, samples]) => {
-    const s = samples.map((v) => v.milliseconds).sort((a, b) => a - b)
-    return [
-      mode,
-      {
-        median: (s[9] + s[10]) / 2,
-        serializations: samples[0].serializations,
-        samples,
-      },
-    ]
-  }),
+  Object.entries(results).map(([strategy, modes]) => [
+    strategy,
+    Object.fromEntries(
+      Object.entries(modes).map(([mode, samples]) => {
+        const sorted = samples.map((v) => v.milliseconds).sort((a, b) => a - b)
+        return [
+          mode,
+          {
+            median: (sorted[9] + sorted[10]) / 2,
+            serializations: samples[0].serializations,
+            samples,
+          },
+        ]
+      }),
+    ),
+  ]),
+)
+const { stdout: head } = await promisify(execFile)(
+  'git',
+  ['rev-parse', 'HEAD'],
+  { cwd: root },
 )
 await writeFile(
-  resolve(output, 'ssr-invalidation.json'),
+  resolve(output, apf ? 'ssr-invalidation-apf.json' : 'ssr-invalidation.json'),
   JSON.stringify(
     {
       date: new Date().toISOString(),
+      head: head.trim(),
       points: 10000,
       gc: typeof global.gc === 'function',
       summary,

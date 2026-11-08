@@ -3240,6 +3240,26 @@ Each optional capability should have a real consumer, independent entry point, b
 
 ## Follow-up tasks from the Angular performance review
 
+- [x] **Reorganize the Angular adapter and replace independent entry builds.**
+      Group host/tooltip/server concerns; build all entries together with Vite
+      and Analog's standard partial compiler. One shared tooltip component now
+      replaces both renderer-named wrappers, preserving existing ownership.
+      Emit complete Angular declarations separately to include type-only modules.
+      Nineteen Angular tests, seven package gates, Angular 20 typing/runtime,
+      emitted component/token identity, and production hydration checks pass.
+      Complete this before the tooltip ownership/tree-shaking task below.
+
+- [x] **Make custom Angular tooltip rendering tree-shakable.** The directive
+      provides a lightweight private query token and owns its component through
+      its own `ViewContainerRef`. Core callback identity handles replacement;
+      no new effect, registry or public setup is required. Twenty Angular tests,
+      Angular 20 typing/SSR/browser runtime, package gates and production Chromium
+      checks pass. Matched production sizes versus `51e96bc9`: SVG without custom
+      templates saves 4,844 gzip bytes, ordinary core tooltips save 4,891, Canvas
+      saves 4,883; custom Angular templates cost 631 more gzip bytes in this fixture.
+      Actual compiled output verifies optional rendering retention. Evidence:
+      `benchmarks/comparison/angular-adapters/2026-10-28-tooltip.json`.
+
 - [ ] **Shared-core positional projection, separate from the Angular adapter.**
       Profile and reduce temporary arrays/object copies in
       `packages/charts-core/src/resolved-layout-position.ts`. The October 28 Chrome
@@ -3255,8 +3275,11 @@ Each optional capability should have a real consumer, independent entry point, b
       Chart destruction unregisters callbacks, application injectors isolate queues,
       and browser entries exclude platform-server imports. Nineteen Angular tests,
       emitted-entry cleanup/error checks, Angular 20/22 runtime checks, and exact
-      SVG/Canvas hydration node reuse pass. Implemented in `177cf0b7`; latency and
-      size of this optional strategy remain unmeasured.
+      SVG/Canvas hydration node reuse pass. Implemented in `177cf0b7`. The final emitted-package benchmark measures about
+      43% lower pending-task request latency for callback-only and late-data
+      updates, with identical final SVG. Initial-data SSR remains similar; the
+      provider is 734 gzip bytes with Angular/core external. Final results live in
+      `benchmarks/comparison/angular-adapters/2026-10-28-final.json`.
 
 ## Open decisions
 

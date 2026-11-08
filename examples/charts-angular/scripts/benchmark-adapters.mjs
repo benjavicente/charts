@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, writeFile, symlink } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { cpus, platform, release } from 'node:os'
 import { dirname, resolve } from 'node:path'
@@ -12,17 +13,44 @@ import { serveAngularFixtures } from './angular-fixture-server.mjs'
 const exec = promisify(execFile)
 const example = resolve(import.meta.dirname, '..')
 const repo = resolve(example, '../..')
-const output = resolve(example, '.benchmark-output/angular-adapters')
+const args = new Set(process.argv.slice(2))
+const apf = args.has('--apf')
+const option = (name) =>
+  [...args].find((arg) => arg.startsWith(name + '='))?.slice(name.length + 1)
+const adapterDirectory = resolve(
+  option('--adapter-dir') ?? resolve(repo, 'packages/angular-charts/dist'),
+)
+const label = option('--label')
+const hydration = args.has('--hydration-only')
+const output = resolve(
+  example,
+  '.benchmark-output',
+  label ??
+    (hydration
+      ? 'angular-hydration'
+      : apf
+        ? 'angular-adapters-apf'
+        : 'angular-adapters'),
+)
 const require = createRequire(resolve(example, 'package.json'))
 const baseline = '778f2cc6'
-const variants = ['empty', 'legacy', 'current', 'canvas']
+const variants = hydration
+  ? ['legacy', 'current', 'canvas']
+  : [
+      'empty',
+      'legacy',
+      'current',
+      'canvas',
+      'both',
+      'currentDefaultTooltip',
+      'currentTooltip',
+    ]
 const scenarios = [
   { points: 100, charts: 1 },
   { points: 1000, charts: 1 },
   { points: 10000, charts: 1 },
   { points: 100, charts: 20 },
 ]
-const args = new Set(process.argv.slice(2))
 const stats = (values) => {
   const sorted = [...values].sort((a, b) => a - b)
   return {
@@ -40,6 +68,22 @@ const save = (name, data) =>
   writeFile(resolve(output, name), JSON.stringify(data, null, 2) + '\n')
 
 async function prepare() {
+  if (apf) {
+    const modules = resolve(output, 'node_modules/@charts-benchmark')
+    await mkdir(modules, { recursive: true })
+    try {
+      await symlink(adapterDirectory, resolve(modules, 'angular'))
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error
+      assert.equal(
+        await realpath(resolve(modules, 'angular')),
+        await realpath(adapterDirectory),
+        'Existing label uses a different adapter directory; choose another --label',
+      )
+    }
+  }
+  const adapter = apf ? '@charts-benchmark/angular' : '@tanstack/charts/angular'
+
   await mkdir(resolve(output, 'src/legacy'), { recursive: true })
   // Compile the real historical component AND directive, without importing the
   // current adapter into the legacy bundle or editing historical behavior.
@@ -89,36 +133,43 @@ export function definition(points: number, phase: number) { return { points, pha
       variant === 'legacy'
         ? '../legacy/Chart'
         : variant === 'canvas'
-          ? '@tanstack/charts/angular/canvas'
-          : '@tanstack/charts/angular'
+          ? adapter + '/canvas'
+          : adapter
     const markup =
       variant === 'legacy'
         ? '<tanstack-chart [options]="option" />'
         : variant === 'canvas'
           ? '<div tanstack-canvas-chart [options]="option"></div>'
-          : '<div tanstack-chart [options]="option"></div>'
+          : variant === 'both'
+            ? '<div tanstack-chart [options]="option"></div><div tanstack-canvas-chart [options]="option"></div>'
+            : variant === 'currentTooltip'
+              ? '<div tanstack-chart [options]="option"><ng-template [tanstackChartTooltipBody]="option.definition" let-tooltip>{{ tooltip.content }}<ng-container [ngTemplateOutlet]="tooltip.defaultBody" /></ng-template></div>'
+              : '<div tanstack-chart [options]="option"></div>'
     await writeFile(
       resolve(directory, 'App.ts'),
       `
 import { ApplicationRef, ChangeDetectionStrategy, Component, PLATFORM_ID, inject, signal } from '@angular/core'
 ${variant === 'empty' ? '' : `import { Chart } from '${chartImport}'`}
+${variant === 'both' ? `import { Chart as CanvasChart } from '${adapter}/canvas'` : ''}
+${variant === 'currentTooltip' ? `import { ChartTooltipBodyDirective } from '${adapter}'; import { NgTemplateOutlet } from '@angular/common'` : ''}
+${['currentTooltip', 'currentDefaultTooltip'].includes(variant) ? `import { defineChart } from '@tanstack/charts'; import { tooltip } from '@tanstack/charts/tooltip'` : ''}
 import { definition, scenario } from '../fixture${variant === 'empty' ? '-empty' : ''}'
 @Component({
   selector: 'benchmark-app',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [${variant === 'empty' ? '' : 'Chart'}],
+  imports: [${variant === 'empty' ? '' : variant === 'both' ? 'Chart, CanvasChart' : variant === 'currentTooltip' ? 'Chart, ChartTooltipBodyDirective, NgTemplateOutlet' : 'Chart'}],
   template: \`@if (visible()) { @for (option of options(); track option.idPrefix) { ${variant === 'empty' ? '<div class="empty-chart"></div>' : markup} } }\`,
 })
 export class App {
   readonly application = inject(ApplicationRef)
-  readonly visible = signal(inject(PLATFORM_ID) === 'server')
+  readonly visible = signal(${hydration ? 'true' : "inject(PLATFORM_ID) === 'server'"})
   readonly options = signal<any[]>([])
   contexts: any[] = []
   renders = 0
   onRendered?: () => void
   constructor() { this.prepare(scenario.points, scenario.charts) }
   prepare(points: number, charts: number) {
-    const chart = definition(points, 0)
+    const chart = ${['currentTooltip', 'currentDefaultTooltip'].includes(variant) ? 'defineChart(definition(points, 0), { tooltip: { use: tooltip, format: (point: any) => String(point.datum.id) } })' : 'definition(points, 0)'}
     this.contexts = []
     this.options.set(Array.from({ length: charts }, (_, index) => ({
       definition: chart, width: 720, height: 320,
@@ -142,9 +193,12 @@ export class App {
       resolve(directory, 'main.ts'),
       `
 import { provideZonelessChangeDetection } from '@angular/core'
-import { bootstrapApplication } from '@angular/platform-browser'
+import { bootstrapApplication${hydration ? ', provideClientHydration' : ''} } from '@angular/platform-browser'
 import { App } from './App'
-bootstrapApplication(App, { providers: [provideZonelessChangeDetection()] }).then(ref => {
+${hydration ? "import {scenario} from '../fixture'; Object.assign(scenario, (window as any).chartHydrationScenario)" : ''}
+${hydration ? "performance.mark('chart-bootstrap-start')" : ''}
+bootstrapApplication(App, { providers: [provideZonelessChangeDetection()${hydration ? ', provideClientHydration()' : ''}] }).then(${hydration ? 'async ' : ''}ref => {
+  ${hydration ? "await ref.whenStable(); performance.mark('chart-bootstrap-end'); performance.measure('chart-bootstrap', 'chart-bootstrap-start', 'chart-bootstrap-end')" : ''}
   ;(window as any).chartBenchmark = ref.components[0].instance
 })
 `,
@@ -153,18 +207,19 @@ bootstrapApplication(App, { providers: [provideZonelessChangeDetection()] }).the
       resolve(directory, 'main.server.ts'),
       `
 import { provideZonelessChangeDetection } from '@angular/core'
-import { bootstrapApplication } from '@angular/platform-browser'
+import { bootstrapApplication${hydration ? ', provideClientHydration' : ''} } from '@angular/platform-browser'
 import type { BootstrapContext } from '@angular/platform-browser'
 import { provideServerRendering, renderApplication } from '@angular/platform-server'
+${variant === 'legacy' || variant === 'empty' ? '' : `import { provideChartsServerRendering } from '${adapter}/server'`}
 import { App } from './App'
 import { scenario } from '../fixture${variant === 'empty' ? '-empty' : ''}'
-const bootstrap = (context: BootstrapContext) => bootstrapApplication(App, {
-  providers: [provideZonelessChangeDetection(), provideServerRendering()],
+const bootstrapFor = (queued = false) => (context: BootstrapContext) => bootstrapApplication(App, {
+  providers: [provideZonelessChangeDetection(), provideServerRendering(), ${hydration ? 'provideClientHydration(),' : ''} ${variant === 'legacy' || variant === 'empty' ? '' : '...(queued ? [provideChartsServerRendering()] : [])'}],
 }, context)
-export default bootstrap
-export async function renderOne(points: number, charts: number) {
+export default bootstrapFor()
+export async function renderOne(points: number, charts: number, queued = false) {
   Object.assign(scenario, { points, charts })
-  return renderApplication(bootstrap, {
+  return renderApplication(bootstrapFor(queued), {
     document: '<!doctype html><html><head></head><body><benchmark-app></benchmark-app></body></html>',
     url: 'http://localhost/',
     allowedHosts: ['localhost'],
@@ -203,6 +258,7 @@ export async function renderOne(points: number, charts: number) {
             sourceMap: false,
             outputHashing: 'none',
             extractLicenses: true,
+            statsJson: true,
           },
         },
       },
@@ -254,7 +310,34 @@ async function measureBundles() {
         }).length,
       })
     }
+    const metadata = JSON.parse(
+      await readFile(
+        resolve(output, 'dist', variant, 'browser-stats.json'),
+        'utf8',
+      ),
+    )
+    assert.ok(
+      !Object.keys(metadata.inputs).some((path) =>
+        path.includes('@angular/platform-server'),
+      ),
+      'Browser graph must exclude platform-server',
+    )
+    const inputs = Object.entries(metadata.outputs)
+      .filter(([path]) => path.endsWith('.js'))
+      .flatMap(([, chunk]) =>
+        Object.entries(chunk.inputs).map(([path, entry]) => ({
+          path,
+          bytes: entry.bytesInOutput,
+        })),
+      )
     sizes[variant] = {
+      attribution: inputs
+        .filter(
+          (entry) =>
+            entry.path.includes('/angular-charts/') ||
+            entry.path.includes('tanstack-angular-charts'),
+        )
+        .sort((a, b) => b.bytes - a.bytes),
       files,
       raw: files.reduce((sum, f) => sum + f.raw, 0),
       gzip: files.reduce((sum, f) => sum + f.gzip, 0),
@@ -270,7 +353,7 @@ async function measureSsr() {
   // bundle their own Angular runtime, so importing the app's renderOne keeps DI
   // tokens and platform ownership within the corresponding production bundle.
   const modules = {}
-  for (const variant of variants.filter((v) => v !== 'empty')) {
+  for (const variant of ['legacy', 'current', 'canvas']) {
     modules[variant] = await import(
       pathToFileURL(resolve(output, 'dist', variant, 'server/main.server.mjs'))
     )
@@ -278,23 +361,37 @@ async function measureSsr() {
   }
   const results = []
   for (const scenario of scenarios) {
-    const samples = { legacy: [], current: [], canvas: [] }
+    const samples = {
+      legacy: [],
+      current: [],
+      queued: [],
+      canvas: [],
+      canvasQueued: [],
+    }
     const html = {}
     for (let iteration = -5; iteration < 40; iteration++) {
       const order =
         iteration % 2
-          ? ['legacy', 'current', 'canvas']
-          : ['canvas', 'current', 'legacy']
+          ? ['legacy', 'current', 'queued', 'canvas', 'canvasQueued']
+          : ['canvasQueued', 'canvas', 'queued', 'current', 'legacy']
       for (const variant of order) {
         global.gc?.()
         const start = performance.now()
-        const document = await modules[variant].renderOne(
+        const queued = variant === 'queued' || variant === 'canvasQueued'
+        const renderer =
+          variant === 'queued'
+            ? 'current'
+            : variant === 'canvasQueued'
+              ? 'canvas'
+              : variant
+        const document = await modules[renderer].renderOne(
           scenario.points,
           scenario.charts,
+          queued,
         )
         const elapsed = performance.now() - start
         const expected =
-          variant === 'canvas' ? 'ts-chart-canvas__scene' : 'ts-chart__line'
+          renderer === 'canvas' ? 'ts-chart-canvas__scene' : 'ts-chart__line'
         assert.ok(
           document.includes(expected),
           `${variant}: missing chart markup`,
@@ -526,12 +623,148 @@ async function measureBrowser() {
   }
 }
 
+async function measureHydration() {
+  const { chromium } = await import('playwright')
+  const server = await serveAngularFixtures(resolve(output, 'dist'))
+  let browser
+  const results = []
+  try {
+    browser = await chromium.launch()
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      deviceScaleFactor: 1,
+    })
+    for (const points of [100, 1000, 10000]) {
+      const samples = Object.fromEntries(
+        variants.map((variant) => [variant, []]),
+      )
+      for (const variant of variants) {
+        const module = await import(
+          pathToFileURL(
+            resolve(output, 'dist', variant, 'server/main.server.mjs'),
+          )
+        )
+        const html = await module.renderOne(points, 1)
+        assert.ok(
+          html.includes('ngh='),
+          'Fixture must contain Angular hydration metadata',
+        )
+        await writeFile(
+          resolve(output, 'dist', variant, 'browser/hydration.html'),
+          html.replace(
+            '</body>',
+            `<script>window.chartHydrationScenario = ${JSON.stringify({ points, charts: 1 })}; window.serverChartNodes = Array.from(document.querySelectorAll('svg, canvas, .ts-chart__line path, svg circle'))</script><script type="module" src="./main.js"></script></body>`,
+          ),
+        )
+      }
+      for (let iteration = -3; iteration < 20; iteration++) {
+        const order = iteration % 2 ? variants : [...variants].reverse()
+        for (const variant of order) {
+          const page = await context.newPage()
+          const errors = []
+          page.on('pageerror', (error) => errors.push(error.message))
+          page.on('console', (message) => {
+            if (message.type() === 'error') errors.push(message.text())
+          })
+          await page.goto(`${server.url}/${variant}/browser/hydration.html`)
+          await page.waitForFunction(() => !!window.chartBenchmark)
+          const measured = await page.evaluate(() => {
+            const retained =
+              window.serverChartNodes.length > 0 &&
+              window.serverChartNodes.every((node) => node.isConnected)
+            return {
+              milliseconds:
+                performance.getEntriesByName('chart-bootstrap')[0].duration,
+              retained,
+              points: window.chartBenchmark.contexts[0].scene.points.length,
+              renders: window.chartBenchmark.renders,
+            }
+          })
+          assert.equal(
+            measured.points,
+            points * 2,
+            'Client line-plus-dot scene must match the SSR dataset',
+          )
+          assert.equal(
+            measured.retained,
+            true,
+            `${variant}: hydration replaced server chart nodes`,
+          )
+          assert.equal(
+            measured.renders,
+            1,
+            `${variant}: expected one browser render`,
+          )
+          assert.deepEqual(errors, [], variant)
+          if (iteration >= 0) samples[variant].push(measured.milliseconds)
+          await page.close()
+        }
+      }
+      const result = {
+        points,
+        samples,
+        milliseconds: Object.fromEntries(
+          Object.entries(samples).map(([variant, values]) => [
+            variant,
+            stats(values),
+          ]),
+        ),
+      }
+      results.push(result)
+      console.log(
+        'Hydration',
+        JSON.stringify({ ...result, samples: undefined }),
+      )
+    }
+    const result = {
+      browser: browser.version(),
+      boundary:
+        'bootstrapApplication through ApplicationRef.whenStable; excludes network/import parsing; every sample asserts server node reuse and one browser render',
+      results,
+    }
+    await save('hydration.json', result)
+    return result
+  } finally {
+    await browser?.close()
+    await server.close()
+  }
+}
+
 await mkdir(output, { recursive: true })
 if (!args.has('--skip-build')) await prepare()
 const { stdout: head } = await exec('git', ['rev-parse', 'HEAD'], { cwd: repo })
 await save('environment.json', {
   date: new Date().toISOString(),
   baseline,
+  consumption: apf ? 'linked APF artifacts' : 'workspace source',
+  adapterDirectory,
+  adapterSha256: Object.fromEntries(
+    await Promise.all(
+      (
+        await readdir(
+          apf
+            ? resolve(adapterDirectory, 'fesm2022')
+            : resolve(repo, 'packages/angular-charts/src'),
+        )
+      )
+        .filter((name) => (apf ? name.endsWith('.mjs') : name.endsWith('.ts')))
+        .map(async (name) => [
+          name,
+          createHash('sha256')
+            .update(
+              await readFile(
+                resolve(
+                  apf
+                    ? resolve(adapterDirectory, 'fesm2022')
+                    : resolve(repo, 'packages/angular-charts/src'),
+                  name,
+                ),
+              ),
+            )
+            .digest('hex'),
+        ]),
+    ),
+  ),
   head: head.trim(),
   node: process.version,
   angular: require('@angular/core/package.json').version,
@@ -542,6 +775,10 @@ await save('environment.json', {
 })
 await measureBundles()
 if (args.has('--build-only')) process.exit(0)
+if (hydration) {
+  await measureHydration()
+  process.exit(0)
+}
 if (!args.has('--browser-only')) await measureSsr()
 if (!args.has('--ssr-only')) await measureBrowser()
 console.log(`Raw results: ${output}`)

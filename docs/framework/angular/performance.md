@@ -8,13 +8,261 @@ work. Its SVG data-update and server-rendering times are close to the old
 adapter's, while its production bundle is larger. Both use the same chart
 rendering pipeline.
 
+## Directive-owned tooltip rendering — October 28
+
+Custom Angular tooltip rendering is now owned by `ChartTooltipBodyDirective`.
+Charts query a lightweight private token; they no longer import the directive,
+body component, binding helper, or a tooltip outlet. The directive's node
+provider creates the binding helper in its own injection context and uses its
+`ViewContainerRef`. Core tooltip callback identity handles template replacement:
+the previous callback receives `null`, and the new callback receives the current
+target. There is no added synchronization effect, target registry, async import,
+or public setup requirement. The component's template input is now required.
+
+A matched production AOT size comparison uses committed Vite/Analog baseline
+`51e96bc9` and the directive-owned working tree. Angular, chart core, compiler,
+minifier, and fixture source are identical. This isolates tooltip ownership
+from the earlier bundler change. Values are whole-application gzip bytes:
+
+| Fixture                          | Before |  After | Change |
+| -------------------------------- | -----: | -----: | -----: |
+| SVG, no custom body              | 89,937 | 85,093 | -4,844 |
+| Canvas, no custom body           | 91,174 | 86,291 | -4,883 |
+| Both, no custom body             | 97,011 | 92,246 | -4,765 |
+| SVG with ordinary core tooltip   | 94,534 | 89,643 | -4,891 |
+| SVG with custom Angular template | 94,611 | 95,242 |   +631 |
+
+The plain SVG app saves 4.73 KiB (5.39%); the ordinary core-tooltip app saves
+4.78 KiB (5.17%). The custom-template app grows by 631 gzip bytes (0.67%).
+The provider boundary has a cost when used; it shifts Angular rendering support
+to its consumers. Applications already retaining that Angular support can see
+a different marginal cost. These are fixture measurements, not universal sizes. For the custom-template
+fixture, build metadata attributes 1,833 additional raw bytes to Angular core
+and 339 fewer raw bytes to the adapter. Compressed contributions cannot be
+assigned by subtracting those module sizes.
+
+Compiled output checks confirm that SVG-only, Canvas-only, combined, and
+ordinary-core-tooltip apps drop the Angular body component. The ordinary
+core-tooltip fixture still retains the core tooltip extension. The custom
+Angular-template app retains both its directive and component. Empty and legacy
+controls are byte-identical, and hashes verify matching before/after fixture
+sources. Published entries still contain one shared body component for consumers
+that import the directive.
+
+With Angular/core imports external, the linked SVG adapter changes from
+3,443 to 1,886 gzip bytes. Retaining both SVG and the directive changes from
+3,450 to 3,369 bytes. Those adapter-only values exclude transitive Angular
+runtime support and therefore do not contradict the custom-template whole-app
+increase. The earlier feature-disabled probe is superseded by this compatible
+implementation and its actual application measurements.
+
+Twenty compiled Angular tests pass, including active view reuse, target updates,
+replacement, removal/restoration without a new focus event, nested charts,
+portals, hide/reopen, and destruction. Angular 20 strict consumer compilation,
+linked SSR with both strategies, and browser-runtime tooltip lifecycle checks
+pass. Production Chromium verifies SVG/Canvas hydration, painting, callbacks,
+tooltip updates and cleanup. All seven framework package gates pass.
+No new rendering-latency or heap-retention improvement is claimed here.
+
+Raw sizes, attribution, artifact/fixture hashes, retention assertions and
+controls are recorded in
+`benchmarks/comparison/angular-adapters/2026-10-28-tooltip.json`.
+The benchmark runner accepts `--adapter-dir=<compiled-package-dist>` and
+`--label=<output-name>` so both snapshots use the same fixture generator:
+
+```sh
+pnpm --filter @tanstack/angular-charts build
+pnpm --filter @charts-internal/angular-example benchmark --apf --build-only --label=tooltip-after
+pnpm --filter @charts-internal/angular-example benchmark:size
+```
+
+The example's separate `build` and `test:browser` commands verify its production
+hydration and interactions; they are not needed for the size fixtures.
+To reproduce the baseline, build the adapter sources from `51e96bc9` with the
+same installed toolchain, then pass its dist directory through `--adapter-dir`.
+The runner now builds additional default/custom tooltip size fixtures; the
+historical runtime timings below still cover their original workloads only.
+
+## Final branch measurements — October 28
+
+These samples precede the subsequent Vite/Analog build migration and source
+reorganization. That migration shares one tooltip component across entry chunks;
+the independent-entry duplication described below is historical. The later directive-owned tooltip results above measure the compatible
+implementation; the measurements in this historical section remain unchanged.
+
+This follow-up measures the implementation through `306ce7af`, including the
+optional SSR strategy. Current variants consume the **emitted Angular Package
+Format entries**, linked and optimized by Angular CLI; legacy remains the exact
+source snapshot from `778f2cc6`. All variants share Angular 22.0.8 and current
+chart core. The raw result records emitted-artifact hashes, samples and p95s in
+`benchmarks/comparison/angular-adapters/2026-10-28-final.json`.
+
+### Final production application sizes
+
+| Application        |   Minified |      Gzip |    Brotli |
+| ------------------ | ---------: | --------: | --------: |
+| Empty harness      | 101.53 KiB | 33.85 KiB | 30.54 KiB |
+| Old SVG            | 243.95 KiB | 83.85 KiB | 74.35 KiB |
+| Final SVG          | 258.40 KiB | 88.50 KiB | 78.07 KiB |
+| Final Canvas       | 264.31 KiB | 89.61 KiB | 78.67 KiB |
+| Final SVG + Canvas | 288.34 KiB | 95.65 KiB | 83.62 KiB |
+
+The final SVG app is 4,763 gzip bytes larger than legacy (4.65 KiB, 5.55%).
+These are whole-app sizes; the combined fixture renders both component types.
+Browser build metadata confirms no platform-server dependency in these graphs.
+A matched source-entry rerun measured 90,666 gzip bytes for SVG, versus 90,629
+through APF. Neither consumption path changes the size conclusion. The old
+October 27 source-entry SVG app measured 90,621 bytes; do not attribute the
+APF/source difference to the SSR provider alone.
+
+### Final browser mounting and immutable updates
+
+Medians in milliseconds, using the same synchronous tick/layout boundary and
+sample counts described below:
+
+| Workload             | Mount old | Mount final | Update old | Update final |
+| -------------------- | --------: | ----------: | ---------: | -----------: |
+| 100 rows             |      2.25 |        1.20 |       1.00 |         1.10 |
+| 1000 rows            |     13.50 |        5.40 |       7.20 |         7.20 |
+| 10000 rows           |    142.25 |       55.55 |      77.25 |        77.65 |
+| 20 charts × 100 rows |     39.05 |       18.35 |      20.45 |        20.70 |
+
+Mounting is about 47–61% faster across these workloads. Data updates remain
+close: the new architecture does not remove the core renderer's per-row work.
+The 10,000-row Canvas update median is 65.60 ms versus 77.65 ms for final SVG.
+Scheduled commits, frame proxies, teardown, and all individual samples remain
+in the raw result; the large workload still exceeds a 16.7 ms frame.
+
+### Default versus queued SSR
+
+Immediately available data, median full-request milliseconds:
+
+| Workload        | Old SVG | Final SVG effect | Final SVG queued | Canvas effect | Canvas queued |
+| --------------- | ------: | ---------------: | ---------------: | ------------: | ------------: |
+| 100 rows × 1    |    5.88 |             5.89 |             5.83 |          4.22 |          4.17 |
+| 1,000 rows × 1  |   18.46 |            18.35 |            18.52 |          9.30 |          9.26 |
+| 10,000 rows × 1 |  123.28 |           121.52 |           121.47 |         54.39 |         54.40 |
+| 100 rows × 20   |   38.99 |            38.40 |            38.39 |         19.87 |         19.45 |
+
+There is no meaningful initial-data SSR improvement from queuing: both paths
+serialize once. Canvas outputs an unpainted shell and is not equivalent to
+server-rendered visible SVG.
+
+For the separate 10,000-row pending-task probe, both strategies run from the
+same emitted server application, alternating order. Each cell has three
+warm-ups and twenty samples, with GC outside the timing boundary:
+
+| Late change      | Effect, ms | Queued, ms | Serializations, effect / queued |
+| ---------------- | ---------: | ---------: | ------------------------------: |
+| None             |     123.38 |     125.28 |                           1 / 1 |
+| Replace callback |     214.03 |     123.05 |                           2 / 1 |
+| Replace data     |     218.47 |     124.45 |                           2 / 1 |
+
+Queued SSR reduces callback-only request time by about 43% and late-data request
+time by about 43% in this workload. Both strategies produce exactly the same
+final SVG for each scenario; late-data SVG differs from the unchanged chart.
+These are matched results, not comparisons with the earlier probe's absolute
+times. Queue setup does not benefit requests that would serialize only once.
+
+### Hydration with matching server and client data
+
+Median milliseconds from immediately before `bootstrapApplication()` through
+`ApplicationRef.whenStable()`:
+
+| Rows   | Old SVG | Final SVG | Final Canvas |
+| ------ | ------: | --------: | -----------: |
+| 100    |   16.75 |     15.00 |        16.00 |
+| 1,000  |   32.50 |     26.10 |        24.30 |
+| 10,000 |  161.20 |    112.85 |        99.45 |
+
+Each cell has three warm-ups and twenty fresh-page samples, alternating adapter
+order. Every sample checks the expected client line-plus-dot point count,
+exact server SVG/line/circle or Canvas node reuse, one browser render, and no
+page or console errors. An initial mismatched-data fixture was discarded before
+collecting these results.
+
+This measures bootstrap plus hydration and initial browser chart work. It
+excludes network transfer, module parsing/evaluation before the bootstrap mark,
+server HTML parsing, and GPU presentation. The Canvas comparison starts from
+an unpainted shell. The SVG improvement is about 20% at 1,000 rows and 30% at
+10,000 rows; it should not be described as a navigation-time improvement.
+
+### Adapter-only size and remaining opportunities
+
+Emitted APF entries are processed with the installed Angular CLI linker and
+advanced optimizer, then bundled/minified as ES2022. Angular and chart imports
+remain external. Values below are bytes, not whole-app contributions:
+
+| Retained API                   | Minified |  Gzip | Brotli |
+| ------------------------------ | -------: | ----: | -----: |
+| SVG Chart                      |   10,904 | 3,449 |  3,070 |
+| Canvas Chart                   |   11,212 | 3,405 |  3,050 |
+| Both Charts                    |   20,993 | 4,194 |  3,516 |
+| Tooltip directive only         |    1,138 |   559 |    492 |
+| Strategy token only            |      777 |   412 |    342 |
+| Server provider only           |    1,519 |   734 |    636 |
+| Private tooltip component only |    6,139 | 1,829 |  1,589 |
+
+**Most useful Angular size experiment:** make custom tooltip rendering
+optional through the existing projected directive. Ordinary charts currently
+retain the Angular tooltip body even without a custom template. An in-memory
+probe drops only the SVG tooltip-component reference and measures 5,482 raw /
+2,201 gzip bytes, versus 10,904 / 3,449. That 1,248-byte gzip reduction is an
+adapter-only ceiling with custom tooltip rendering disabled, not a compatible
+implementation or a promised whole-app saving.
+
+A follow-up can investigate directive-owned rendering through a shared query
+token, preserving the public binding and its inferred types. Validate both
+with/without-template production apps, portals, template replacement,
+hide/reopen, nested change detection, cleanup, and APF token/component identity.
+The new task is recorded in `PLAN.md`; production behavior is unchanged here.
+
+**Lower priority:** deduplicate private helpers/templates across emitted SVG
+and Canvas entries. Both retained entries cost 20,993 raw / 4,194 gzip bytes,
+versus SVG's 10,904 / 3,449. Compression already limits the increment to 745
+gzip bytes with renderer imports external. An extra internal entry or public
+implementation exports need a stronger benefit before accepting that complexity.
+
+**Largest remaining speed work:** shared-core positional projection, SVG
+serialization/reconciliation, and batching dashboard measurements. The prior
+Chrome profiles below locate those costs; they are not new final-branch CPU
+profiles. Keep projection outside the Angular adapter task. Small options
+spreads and output wrappers are unlikely to improve dense-chart performance
+when the wrapper was below 0.5% of sampled active CPU.
+
+### Reproduce the follow-up
+
+First build/finalize `packages/angular-charts/dist` using the framework package
+gate (`node scripts/check-framework-adapters.mjs`). Then run:
+
+```sh
+pnpm --filter @charts-internal/angular-example benchmark --apf
+pnpm --filter @charts-internal/angular-example profile:ssr --apf
+pnpm --filter @charts-internal/angular-example benchmark --apf --hydration-only
+pnpm --filter @charts-internal/angular-example benchmark:size
+```
+
+The APF run writes to `.benchmark-output/angular-adapters-apf`, hydration to
+`.benchmark-output/angular-hydration`, and linked size probes to
+`.benchmark-output/angular-size`, under the Angular example. `--skip-build`
+requires fixtures built with the same mode. Build metadata and adapter hashes
+are recorded. The size runner uses the installed CLI's internal transformer;
+it must be checked when that toolchain changes. Browser commands on macOS
+require permissions compatible with Chromium's bootstrap services.
+
+These runs do not measure heap retention, sustained streaming, tooltip
+interaction latency, resize throughput, or Angular 20 performance. They cover
+the missing final-package sizes, optional SSR timing, and matched hydration
+boundary without claiming those additional workloads.
+
+## Historical October 27 measurements
+
 These are local measurements from October 27, 2026, rather than performance
 guarantees. The old adapter is the exact `Chart.ts`, `ChartTooltipBody.ts` and
 `types.ts` from upstream `778f2cc6`. The current adapter is `6d417fbd`. Both
 compile against the same current chart core and Angular dependencies, isolating
 the adapter change from framework and renderer upgrades. These measurements
-predate the optional SSR strategy added in `177cf0b7`; its latency and bundle
-size have not been remeasured. The reproduction scripts use the current checkout,
+predate the optional SSR strategy added in `177cf0b7`; its final measurements are reported above. The reproduction scripts use the current checkout,
 so reruns after that commit are a new result rather than an exact reproduction
 of the historical snapshot.
 
@@ -173,7 +421,8 @@ options spreads or output wrappers is unlikely to address dense-chart costs.
 ### 1. Skip unchanged server markup after callback-only updates
 
 This is the clearest adapter-only opportunity. The server effect in
-`packages/angular-charts/src/inject-chart-host.ts` observes the entire adapted
+`packages/angular-charts/src/inject-chart-host.ts` at the profiled revision
+(now under `src/host/`) observes the entire adapted
 options object and always calls `prerender()` and writes `innerHTML`. A callback
 change therefore repeats scene creation, serialization and parsing even when
 the markup is unchanged.
@@ -207,8 +456,8 @@ retains its reactive behavior and requires no extra server setup. See the
 [server strategy reference](./reference/chart.md#server-rendering-strategy).
 
 This follow-up is validated for behavior and serialization counts. The request
-times above measure the earlier default effect, not the optional provider; no
-new latency or size result is claimed. The `profile:ssr` runner intentionally
+times in this historical section measure the earlier default effect. The
+matched final-provider latency and size results are reported above. The `profile:ssr` runner intentionally
 uses the default strategy to keep exposing that baseline behavior.
 
 ### 2. Reduce shared positional projection allocations
