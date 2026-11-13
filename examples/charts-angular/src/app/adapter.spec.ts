@@ -1,8 +1,10 @@
 import {
   Component,
+  NgZone,
   effect,
   provideZonelessChangeDetection,
   signal,
+  ɵNoopNgZone as NoopNgZone,
 } from '@angular/core'
 import { NgTemplateOutlet } from '@angular/common'
 import { TestBed } from '@angular/core/testing'
@@ -224,6 +226,34 @@ class CanvasTooltipHost {
     const point = this.points.find((candidate) => candidate.datum.id === id)
     if (!point || !this.controller) throw new Error('Chart has not mounted')
     this.controller.setControlledFocus(point, { pinned })
+  }
+}
+
+/** Records the zone boundary without requiring zone.js. */
+class RecordingZone extends NoopNgZone {
+  outsideDepth = 0
+  insideDepth = 0
+
+  override run<T>(
+    fn: (...args: any[]) => T,
+    applyThis?: any,
+    applyArgs?: any,
+  ): T {
+    this.insideDepth++
+    try {
+      return super.run(fn, applyThis, applyArgs)
+    } finally {
+      this.insideDepth--
+    }
+  }
+
+  override runOutsideAngular<T>(fn: (...args: any[]) => T): T {
+    this.outsideDepth++
+    try {
+      return super.runOutsideAngular(fn)
+    } finally {
+      this.outsideDepth--
+    }
   }
 }
 
@@ -749,6 +779,66 @@ describe('signal Angular adapter', () => {
     ).toBe('b')
     fixture.destroy()
     expect(childDestroys).toBe(3)
+  })
+
+  it('runs the core outside the zone and notifications inside it', async () => {
+    TestBed.configureTestingModule({
+      imports: [OutputHost],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: NgZone, useClass: RecordingZone },
+      ],
+    })
+    const zone = TestBed.inject(NgZone) as RecordingZone
+    const listeners: number[] = []
+    const addEventListener = HTMLElement.prototype.addEventListener
+    const added = vi
+      .spyOn(HTMLElement.prototype, 'addEventListener')
+      .mockImplementation(function (
+        this: HTMLElement,
+        ...args: Parameters<typeof addEventListener>
+      ) {
+        if (this.classList.contains('ts-chart-surface'))
+          listeners.push(zone.outsideDepth)
+        return addEventListener.apply(this, args)
+      })
+    const fixture = TestBed.createComponent(OutputHost)
+    const host = fixture.componentInstance
+    const select = { inside: 0 }
+    const focus = { inside: 0, outside: 0 }
+    host.options.update((options) => ({
+      ...options,
+      onFocusChange: () => {
+        focus.inside = zone.insideDepth
+        focus.outside = zone.outsideDepth
+      },
+      onSelect: () => (select.inside = zone.insideDepth),
+    }))
+    await fixture.whenStable()
+    added.mockRestore()
+    // Angular runs render hooks, and so the core's mount, outside the zone.
+    expect(listeners.length).toBeGreaterThan(0)
+    expect(listeners.every((depth) => depth > 0)).toBe(true)
+
+    // A notification from a core listener re-enters the zone.
+    const svg: SVGSVGElement = fixture.nativeElement.querySelector('svg')
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 0, 480, 260),
+    )
+    const point = host.points().find((point) => point.datum.id === 'b')!
+    svg.dispatchEvent(
+      new MouseEvent('click', {
+        bubbles: true,
+        clientX: point.x,
+        clientY: point.y,
+      }),
+    )
+    expect(select.inside).toBe(1)
+    expect(host.selections.at(-1)?.datum.id).toBe('b')
+
+    // A consumer operation moves the core out; its notification comes back in.
+    host.focus('a')
+    expect(focus).toEqual({ inside: 1, outside: 1 })
   })
 
   it('can be destroyed before inputs, queries or the ownership effect run', () => {

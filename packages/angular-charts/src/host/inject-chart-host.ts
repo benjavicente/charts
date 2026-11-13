@@ -1,6 +1,7 @@
 import {
   APP_ID,
   Injectable,
+  NgZone,
   PLATFORM_ID,
   Renderer2,
   afterRenderEffect,
@@ -16,6 +17,7 @@ import type {
   ChartRenderer,
   ChartRendererHostOptions,
   ChartRendererRenderContext,
+  ChartTooltipBodyTarget,
   ChartValue,
 } from '@tanstack/charts'
 import type { ChartTooltipBodyRenderer } from '../tooltip/chart-tooltip-body-token'
@@ -76,7 +78,6 @@ export interface ChartHostRendererConfig<
   TDatum,
   TXValue extends ChartValue,
   TYValue extends ChartValue,
-  TOptions,
   TRendered,
 > {
   readonly id: string
@@ -100,18 +101,19 @@ export function injectChartHost<
   TRendered,
 >(
   host: ChartHostDeclarations<TDatum, TXValue, TYValue, TOptions, TRendered>,
-  config: ChartHostRendererConfig<
-    TDatum,
-    TXValue,
-    TYValue,
-    TOptions,
-    TRendered
-  >,
+  config: ChartHostRendererConfig<TDatum, TXValue, TYValue, TRendered>,
 ) {
   const domRenderer = inject(Renderer2)
   const isServer = inject(PLATFORM_ID) === 'server'
   const serverRender = inject(CHART_SERVER_RENDER)
   const generatedId = inject(ChartIdGenerator).next(config.id)
+  const zone = inject(NgZone)
+  // The core's listeners, observers, frames and timers never need change
+  // detection. Angular already runs render hooks outside the zone, so only
+  // consumer-driven operations need moving out; user code re-enters the zone.
+  const outsideZone = <T>(work: () => T) =>
+    untracked(() => zone.runOutsideAngular(work))
+  const insideZone = (notify: () => void) => untracked(() => zone.run(notify))
   const interactions = new WeakMap<
     ChartInteractionController<TDatum, TXValue, TYValue>,
     ChartInteractionController<TDatum, TXValue, TYValue>
@@ -122,15 +124,26 @@ export function injectChartHost<
     const existing = interactions.get(controller)
     if (existing) return existing
     const interaction: ChartInteractionController<TDatum, TXValue, TYValue> = {
-      clientToScene: (x, y) => untracked(() => controller.clientToScene(x, y)),
+      clientToScene: (x, y) =>
+        outsideZone(() => controller.clientToScene(x, y)),
       resolvePointer: (x, y) =>
-        untracked(() => controller.resolvePointer(x, y)),
+        outsideZone(() => controller.resolvePointer(x, y)),
       setControlledFocus: (target, options) =>
-        untracked(() => controller.setControlledFocus(target, options)),
+        outsideZone(() => controller.setControlledFocus(target, options)),
     }
     interactions.set(controller, interaction)
     return interaction
   }
+  // The core compares this callback by identity to decide whether the body
+  // changed owner, so it is rebuilt only with the projected directive.
+  const tooltipBodyChange = computed(() => {
+    const body = config.tooltipBody()
+    return (
+      body &&
+      ((target: ChartTooltipBodyTarget<TDatum, TXValue, TYValue> | null) =>
+        insideZone(() => body.render(target)))
+    )
+  })
   const options = computed(() => {
     const input = host.options()
     const {
@@ -147,7 +160,7 @@ export function injectChartHost<
       // Angular cannot tell whether `rendered` has listeners, so the context is
       // always adapted. This runs once per full scene render, not per frame.
       onRender: (context) =>
-        untracked(() => {
+        insideZone(() => {
           const rendered = config.toRenderContext({
             ...context,
             interaction: adaptInteraction(context.interaction),
@@ -156,21 +169,21 @@ export function injectChartHost<
           host.rendered.emit(rendered)
         }),
       onFocusChange: (point) =>
-        untracked(() => {
+        insideZone(() => {
           onFocusChange?.(point)
           host.focusChange.emit(point)
         }),
       onFocusGroupChange: (points) =>
-        untracked(() => {
+        insideZone(() => {
           onFocusGroupChange?.(points)
           host.focusGroupChange.emit(points)
         }),
       onSelect: (point) =>
-        untracked(() => {
+        insideZone(() => {
           onSelect?.(point)
           host.pointSelect.emit(point)
         }),
-      onTooltipBodyChange: config.tooltipBody()?.render,
+      onTooltipBodyChange: tooltipBodyChange(),
     } satisfies ChartRendererHostOptions<TDatum, TXValue, TYValue>
   })
   const layout = computed(() => resolveChartAdapterLayout(options()))
