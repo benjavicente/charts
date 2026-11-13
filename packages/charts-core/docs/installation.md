@@ -37,7 +37,7 @@ pnpm add @tanstack/charts solid-js
 pnpm add @tanstack/charts svelte
 
 # Angular
-pnpm add @tanstack/charts @angular/core @angular/platform-browser
+pnpm add @tanstack/charts @angular/common @angular/core
 
 # Lit
 pnpm add @tanstack/charts lit

@@ -23,7 +23,7 @@ applications use the Angular standalone component from
 `@tanstack/charts/angular`.
 
 ```sh
-pnpm add @tanstack/charts @angular/common @angular/core @angular/platform-browser
+pnpm add @tanstack/charts @angular/common @angular/core
 ```
 
 ```ts

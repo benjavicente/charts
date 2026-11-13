@@ -27,7 +27,6 @@
   "peerDependencies": {
     "@angular/common": ">=20",
     "@angular/core": ">=20",
-    "@angular/platform-browser": ">=20",
     "@angular/platform-server": ">=20"
   },
   "peerDependenciesMeta": {
