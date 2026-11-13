@@ -38,7 +38,8 @@ For optional serialization-time SSR setup, see the
 Both adapters use the same framework-neutral chart definitions, renderers,
 responsive layout and interaction core. The new adapter targets zoneless apps;
 configure `provideZonelessChangeDetection()` on Angular 20. Angular 21 and later
-use zoneless change detection by default. Components and directives rely on
+use zoneless change detection by default. In zone-based apps the core runs
+outside the zone and notifications re-enter it. Components and directives rely on
 [Angular's standalone default](https://angular.dev/api/core/Directive#standalone); `OnPush` remains explicit.
 
 The optional [Canvas-default component](./adapter.md#canvas-default) adds

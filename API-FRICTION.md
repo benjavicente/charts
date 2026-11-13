@@ -5,7 +5,7 @@ observed difficulty from examples, production migrations, tests, and agent
 evaluations so later API, documentation, and TanStack Intent skill work is
 based on evidence.
 
-Last updated: 2026-10-28
+Last updated: 2026-11-13
 
 ## Triage rule
 
@@ -370,6 +370,10 @@ Each entry records:
 | F-331 | Angular tooltip bodies lagged the core's synchronous positioning | API                   | resolved   |
 | F-332 | Angular template type tests ran in no gate                       | Tooling               | resolved   |
 | F-333 | Angular chart components and host split one render protocol      | Application           | resolved   |
+| F-334 | Angular notifications left the zone in zone-based apps           | API                   | resolved   |
+| F-335 | Angular hydration evidence ran in no gate                        | Tooling               | monitoring |
+| F-336 | Angular required an unused platform-browser peer                 | Tooling               | resolved   |
+| F-337 | A throwing first render left adapters without their host         | API                   | monitoring |
 
 ## Findings
 
@@ -9915,3 +9919,71 @@ Each entry records:
   (1,890 to 1,822), SVG with a custom tooltip (3,431 to 3,359), Canvas
   (1,722 to 1,676), both renderers (2,086 to 1,996) and the directive
   (2,158 to 2,145). The server entry is unchanged.
+
+### F-334 - Angular notifications left the zone in zone-based apps
+
+- Status: resolved
+- Severity: low
+- Owner: API
+- Observed in: reviewing the Angular adapter's zone behavior
+- Friction: Angular runs render hooks outside its zone, so the core mounts and
+  registers its listeners there. That keeps pointer movement out of change
+  detection, but option callbacks, outputs and projected tooltip bodies then
+  also ran outside the zone, where a zone-based app detects no change to plain
+  state. Operations on the `onRender` interaction controller ran in the
+  caller's zone instead.
+- Decision: the host re-enters the zone for the four notifications and the
+  tooltip body, and runs controller operations outside it. Zoneless apps use
+  Angular's no-op zone, so nothing changes for them. The tooltip callback is
+  memoized per directive because the core compares it by identity.
+- Verification: a compiled test with a recording no-op zone asserts that the
+  core's listeners register outside the zone, that click and controlled-focus
+  notifications arrive inside it, and that the controller operation runs
+  outside it. The workspace does not install zone.js, so no real zone-based
+  application is exercised.
+
+### F-335 - Angular hydration evidence ran in no gate
+
+- Status: monitoring
+- Severity: low
+- Owner: Tooling
+- Observed in: reviewing the Angular adapter's test coverage
+- Friction: only the example's `test:browser` script checks that hydration
+  keeps the server SVG and Canvas nodes, and no nx target or workflow ran it.
+- Decision: add `test-angular-browser`, which depends on `angular-app-build`,
+  to the local `ci` target. It stays out of `ci-distributed`: Nx agents have no
+  Chromium, and the workflow contract forbids Playwright in the static job.
+- Verification: `nx run charts-workspace:test-angular-browser` passes in
+  Chromium.
+- Follow-up: choose a Playwright-enabled hosted job to run the target.
+
+### F-336 - Angular required an unused platform-browser peer
+
+- Status: resolved
+- Severity: low
+- Owner: Tooling
+- Observed in: reviewing the Angular adapter's manifests
+- Friction: `@tanstack/angular-charts` and `@tanstack/charts` declared an
+  `@angular/platform-browser` peer that no adapter source imports. The
+  installation guide also omitted `@angular/common`, which the tooltip body
+  imports.
+- Decision: remove the peer from both manifests and list `@angular/common` and
+  `@angular/core` in the install commands.
+- Verification: the frozen-lockfile install, the Angular type tests, the
+  compiled Angular tests and the production browser comparison pass without
+  the peer.
+
+### F-337 - A throwing first render left adapters without their host
+
+- Status: monitoring
+- Severity: low
+- Owner: API
+- Observed in: a temporary Angular spec written while reviewing the adapter
+- Friction: `mountChartRenderer` registers its listeners and then runs the
+  first render. If that render throws, for example from `onRender`, the adapter
+  never stores the host, so later `update` and `destroy` calls do nothing: the
+  chart keeps its first options and its listeners stay attached.
+- Decision: left unchanged; a throwing first render is rare. The Angular host
+  does not retry the mount, because a retry without a core teardown would stack
+  a second host on the first.
+- Follow-up: revisit if applications report it.

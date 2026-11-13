@@ -23,3 +23,8 @@ component uses ChartRendererRenderContext and selects canvasChartRenderer.
 Add CHART_SERVER_RENDER with effect-based scheduling by default. The optional
 @tanstack/charts/angular/server entry provides provideChartsServerRendering()
 to render live charts once immediately before server HTML serialization.
+
+Run interaction controller operations outside the Angular zone and deliver
+notification callbacks, outputs and projected tooltip bodies inside it, so
+zone-based applications detect their changes. Remove the unused
+@angular/platform-browser peer.

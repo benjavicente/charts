@@ -42,6 +42,12 @@ On Angular 20, configure zoneless change detection with
 `provideZonelessChangeDetection()` at bootstrap. Zoneless change detection is
 the default from Angular 21. The repository example uses Angular 22.
 
+Zone-based applications also work. The core's pointer, resize, animation and
+timer callbacks run outside the Angular zone, so moving the pointer over a
+chart does not trigger change detection. The four notification callbacks, their
+outputs and projected tooltip bodies re-enter the zone when the core reports a
+change.
+
 ## Native host and options
 
 The native `div` is the `.ts-chart-host`. Its ID, classes, data attributes and
@@ -60,7 +66,8 @@ pure computed values derive layout and renderer options. A lazy getter creates
 one adapter at its first imperative use and registers disposal with its Angular
 owner. One shared callback applies options on both platforms: a render effect
 schedules it after native host bindings in the browser, and a component effect
-schedules it on the server. A separate one-time render callback mounts the chart.
+schedules it on the server. In the browser the same callback mounts the chart
+the first time it runs.
 Server rendering serializes current options without mounting the browser runtime;
 hydration adopts the server SVG and mark nodes.
 
