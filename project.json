@@ -182,7 +182,8 @@
         "catalog-preview-check",
         "conformance-app-build",
         "test-angular",
-        "angular-app-build"
+        "angular-app-build",
+        "test-angular-browser"
       ],
       "options": {
         "command": "node -e \"console.log('CI targets passed.')\""
@@ -229,6 +230,13 @@
         "command": "pnpm --filter @charts-internal/angular-example build"
       },
       "outputs": ["{workspaceRoot}/examples/charts-angular/dist"]
+    },
+    "test-angular-browser": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["angular-app-build"],
+      "options": {
+        "command": "pnpm --filter @charts-internal/angular-example test:browser"
+      }
     }
   }
 }
